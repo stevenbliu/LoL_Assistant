@@ -2,9 +2,9 @@ import sys
 from PyQt5.QtWidgets import QApplication
 from threading import Thread
 
-from overlay.overlay_window import OverlayWindow
-from ocr.processor import OCRProcessor
-from utils.hotkeys import listen_hotkey
+from computer_vision.overlay.overlay_window import OverlayWindow
+from computer_vision.ocr.processor import OCRProcessor
+from computer_vision.utils.hotkeys import listen_hotkey
 
 
 def main():

@@ -3,7 +3,8 @@ import mss
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import Qt, QRect, QTimer, pyqtSignal, QPoint
 from PyQt5.QtGui import QPainter, QColor, QPen
-from win32_helper import make_non_clickable, make_clickable
+
+# from win32_helper import make_non_clickable, make_clickable
 
 
 class OverlayWindow(QWidget):

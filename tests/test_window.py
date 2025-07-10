@@ -1,6 +1,10 @@
 import pytest
 from PyQt5.QtCore import Qt, QRect, QPoint
-from overlay.window import OverlayWindow
+import sys
+import os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from computer_vision.overlay.overlay_window import OverlayWindow
 
 
 @pytest.fixture

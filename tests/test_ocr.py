@@ -1,6 +1,10 @@
 import pytest
 import numpy as np
-from overlay.ocr import OCRProcessor
+import sys
+import os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from computer_vision.ocr.processor import OCRProcessor
 
 
 class DummySct:
