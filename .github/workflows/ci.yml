@@ -1,0 +1,37 @@
+name: Python CI
+
+on:
+  push:
+    branches: [ main, production ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          if [ "${{ github.ref_name }}" == "production" ]; then
+            pip install -r requirements/prod.txt
+          else
+            pip install -r requirements/dev.txt
+          fi
+
+      - name: Run Tests
+        if: github.ref_name == 'main'
+        run: |
+          pytest tests/
+
+      - name: Deploy
+        if: github.ref_name == 'production'
+        run: |
+          echo "Deploying optimized build..."

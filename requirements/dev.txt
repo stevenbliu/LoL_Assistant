@@ -1,0 +1,11 @@
+-r base.txt
+keyboard
+matplotlib
+cProfile
+line_profiler
+
+pytest
+pytest-mock
+mypy
+black
+flake8
