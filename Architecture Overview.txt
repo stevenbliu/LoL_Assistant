@@ -1,0 +1,34 @@
+ ┌────────────────────┐
+ │ Riot Data Harvester│  ← scheduled
+ └────────────────────┘
+          │
+          ▼
+ ┌────────────────────┐
+ │     Database       │ ← stores structured match + pathing data
+ └────────────────────┘
+          │
+          ▼
+ ┌────────────────────┐
+ │   ML Training Job  │ ← daily batch
+ └────────────────────┘
+          │
+     [Trained Model]
+          │
+          ▼
+ ┌────────────────────┐
+ │ Live Client Monitor│ ← real-time game data (fog events, etc.) 
+ └────────────────────┘
+          │
+          ▼
+ ┌────────────────────┐
+ │  ML Inference API  │ ← returns likely enemy locations
+ └────────────────────┘
+          │
+          ▼
+  [UI Overlay / Dashboard]
+
+
+Live Client Monitor is cancelled due to lack of data with Riot's Live Client API.
+It will be replaced with an in-game overlay that will capture the data live, in real-time instead. 
+
+This will be done by capturing the screen and using OCR (Computer Vision) to extract the necessary information.

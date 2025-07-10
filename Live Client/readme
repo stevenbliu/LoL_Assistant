@@ -1,0 +1,26 @@
+Live Client Monitor
+Polls Riot's Live Client API (local endpoint) every 500ms–1s
+
+Looks for:
+
+Enemy champ reveals (entry from fog of war)
+
+Player vision state
+
+Ally ward events
+
+Jungle camps taken
+
+Detects enemy path indirectly through these signals
+
+Sends partial observations to ML service
+
+json
+Copy
+Edit
+{
+  "enemy_jg": "Elise",
+  "revealed_at": "top_scyther_brush",
+  "timestamp": 2:42,
+  "side": "red"
+}

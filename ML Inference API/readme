@@ -1,0 +1,20 @@
+Lightweight Python Flask/FastAPI service
+
+Loads pre-trained model
+
+Accepts real-time state from Live Client Monitor
+
+Returns predicted jungle location map or X/Y positions with probabilities
+
+Example response:
+
+json
+Copy
+Edit
+{
+  "prediction_time": "3:20",
+  "likely_positions": [
+    {"x": 6000, "y": 10000, "confidence": 0.82},
+    {"x": 4800, "y": 9600, "confidence": 0.12}
+  ]
+}

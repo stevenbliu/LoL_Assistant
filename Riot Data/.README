@@ -1,0 +1,22 @@
+Riot Data Harvester
+Scheduled (e.g. every hour or day)
+
+Uses Riot’s Match API + Timeline API
+
+Pulls data for known junglers or high-ELO players
+
+Extracts:
+
+Champ
+
+Side (blue/red)
+
+Pathing steps (location + timestamp)
+
+Player identity
+
+Output: structured rows like:
+
+Match	Champ	Side	Timestamp	Position (X,Y)	Action
+
+Stored in a DB (Postgres, SQLite, or any fast-read DB).
