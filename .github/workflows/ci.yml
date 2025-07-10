@@ -33,7 +33,6 @@ jobs:
       - name: Run Tests
         if: github.ref_name == 'main'
         run: |
-          # pytest tests/
           xvfb-run -a pytest tests/
 
 
