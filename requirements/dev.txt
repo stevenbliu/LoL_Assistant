@@ -12,6 +12,7 @@ line_profiler
 # Testing frameworks
 pytest
 pytest-mock
+pytest-qt
 
 # Static typing checker
 mypy
