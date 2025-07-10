@@ -19,4 +19,4 @@ Example Usage: User draws boxes via the overlay of certain values to keep track 
 
 
 
-![CI](https://github.com/<your-username>/<your-repo>/actions/workflows/python.yml/badge.svg)
+![CI](https://github.com/stevenbliu/LoL_assistant/actions/workflows/python.yml/badge.svg)
