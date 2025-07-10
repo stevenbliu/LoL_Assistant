@@ -1,11 +1,23 @@
 -r base.txt
+
+# Useful for keyboard input handling
 keyboard
+
+# Plotting library
 matplotlib
-cProfile
+
+# Line-by-line profiler for Python
 line_profiler
 
+# Testing frameworks
 pytest
 pytest-mock
+
+# Static typing checker
 mypy
+
+# Code formatter
 black
+
+# Linter
 flake8
