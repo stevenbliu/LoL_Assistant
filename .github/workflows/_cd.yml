@@ -1,0 +1,37 @@
+name: Python CD
+
+on:
+  push:
+    branches: [ main, production ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build_exe:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'  # match your version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements.txt
+
+      - name: Build executable with PyInstaller
+        run: |
+          pyinstaller --onefile path\to\your_main_script.py
+
+      - name: Upload exe artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: my_app_executable
+          path: dist\your_main_script.exe
+ 
