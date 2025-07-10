@@ -29,6 +29,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb
           pip install -r requirements.txt
+      - name: Install Tesseract OCR
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr
+
 
       - name: Run Tests
         if: github.ref_name == 'main'
