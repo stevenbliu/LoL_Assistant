@@ -11,12 +11,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements/*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
@@ -27,17 +36,33 @@ jobs:
           fi
 
           sudo apt-get update
-          sudo apt-get install -y xvfb
+          sudo apt-get install -y xvfb tesseract-ocr
           pip install -r requirements.txt
-      - name: Install Tesseract OCR
-        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr
 
+      - name: Lint with ruff
+        run: |
+          pip install ruff
+          ruff . || true  # do not fail CI on lint errors (optional)
 
-      - name: Run Tests
+      - name: Run Tests with Coverage
         if: github.ref_name == 'main'
         run: |
-          xvfb-run -a pytest tests/
+          pip install pytest-cov
+          xvfb-run -a pytest tests/ --junitxml=report.xml --cov=. --cov-report=xml
 
+      - name: Upload test results
+        if: github.ref_name == 'main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report
+          path: report.xml
+
+      - name: Upload coverage report
+        if: github.ref_name == 'main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
 
       - name: Deploy
         if: github.ref_name == 'production'
