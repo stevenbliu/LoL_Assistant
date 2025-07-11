@@ -1,21 +1,83 @@
+🧠 Project Summary: League of Legends Jungler Behavior Prediction
+🎯 Goal
+To predict jungler movement over time by analyzing match timelines, using machine learning to forecast their next position on the map (x_next, y_next).
 
-GOAL:
+🏗️ Pipeline Overview
+✅ 1. Data Collection
+Input: List of summoners in found_summoners.csv
 
-"Real-time jungle path prediction app" that, during a game:
+Uses Riot API to fetch:
 
-Identifies the enemy jungler
+Ranked Solo matches (queue=420)
 
-Pulls their historical pathing patterns
+Match data and timelines
 
-Predicts likely early paths (e.g., start buff → gank pattern)
+Extracts per-match jungler data using extract_jungler_data()
 
-Updates predictions as more fog of war info is revealed
+Each match saved as a CSV file under match_data/
 
+Final dataset is consolidated into all_jungler_data.csv
 
+Supports resumable execution via the processed flag in summoner CSV
 
-Current State:
-Developed overlay that allow users to track certain metrics in-game. 
-Example Usage: User draws boxes via the overlay of certain values to keep track of, such as enemy CS, and it will keep this count in mind. We will then use my knowledge to see what kind of information/advice/notifications we can draw from this.
+✅ 2. Data Structure
+Each row (time step) contains:
+
+Match metadata (e.g. Second, MatchId)
+
+Player-specific features:
+
+P1_Champion, P1_X, P1_Y, P1_JungleMinionsKilled, etc.
+
+P2_* (opposing jungler)
+
+Labels (target values): P1_x_next, P1_y_next, P2_x_next, P2_y_next
+
+Derived stats like Distance_Between_Junglers
+
+Total data so far:
+~4,500 rows (~90–100 matches), with updates appending new match data to avoid duplicates
+
+🤖 Modeling
+Regression model predicts each jungler's next map position every 60 seconds
+
+Evaluated using:
+
+MAE, MSE, RMSE, R²
+
+Logged using MLflow
+
+📉 Latest Metrics:
+Test R² = 0.056 → indicates limited predictive power
+
+RMSE ≈ 0.21 → decent spatial error but room for improvement
+
+Top features:
+
+P1_JungleMinionsKilled, P2_JungleMinionsKilled, P2_Y, P1_Y, Second
+
+🚧 Limitations & Challenges
+Low R² suggests the model is only marginally better than a baseline
+
+Some features have zero or negative importance
+
+~100 matches = not enough to learn meaningful behavior patterns
+
+✅ Next Steps 
+🔁 Data
+Increase to 1,000+ ranked jungle matches
+
+Improve feature engineering (e.g. dx/dy, map zones, path memory)
+
+📈 Model
+Try LSTM or sequence-based models (movement is not memoryless)
+
+Add map-objective features (camp proximity, dragon timers)
+
+📊 Analysis
+Visualize actual vs predicted positions
+
+Analyze differences by champ, patch, or role matchup
 
 
 
