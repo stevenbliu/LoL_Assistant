@@ -6,13 +6,15 @@ from preprocessing.preprocessing import (
 )
 from training.training import train_evaluate_baseline_model
 
+DATA_DIR = "database/riot_data"
+
 VERBOSE = False  # Set to False to disable detailed output
 
 
 def main():
-    raw_df = pd.read_csv("all_jungler_data.csv")
+    raw_df = pd.read_csv(f"{DATA_DIR}/all_jungler_data.csv")
     processed_df = preprocess_for_training(raw_df)
-    processed_df.to_csv("jungler_training_data.csv", index=False)
+    processed_df.to_csv(f"{DATA_DIR}/jungler_training_data.csv", index=False)
 
     X_train, X_test, y_train, y_test, encoders = prepare_ml_data(processed_df)
 
