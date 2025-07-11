@@ -1,4 +1,4 @@
-*League of Legends Jungler Behavior Prediction*
+# League of Legends Jungler Behavior Prediction
 🧠 Project Summary
 Predict jungler movement on the League of Legends map over time by analyzing match timelines. The goal is to forecast each jungler’s next position coordinates (x_next, y_next) using machine learning.
 
