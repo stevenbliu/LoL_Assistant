@@ -4,7 +4,9 @@ from preprocessing.preprocessing import (
     prepare_ml_data,
     print_dataset_info,
 )
-from training.training import train_evaluate_baseline_model
+from training.training import train_evaluate_model
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
 
 DATA_DIR = "database/riot_data"
 
@@ -29,8 +31,29 @@ def main():
             raw_df, processed_df, X_train, y_train, X_test, y_test, encoders
         )
 
-    model, mse_per_output, avg_mse = train_evaluate_baseline_model(
-        X_train, y_train, X_test, y_test
+    # Example with Linear Regression
+    lr_model = LinearRegression()
+    train_evaluate_model(
+        X_train, y_train, X_test, y_test, lr_model, model_name="LinearRegression"
+    )
+
+    # Example with Random Forest
+    rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+    train_evaluate_model(
+        X_train, y_train, X_test, y_test, rf_model, model_name="RandomForest"
+    )
+
+    # Example with HistGradientBoosting
+    hgb_model = HistGradientBoostingRegressor(
+        max_iter=100,
+        random_state=42,
+        early_stopping=True,
+        validation_fraction=0.1,
+        n_iter_no_change=10,
+        max_depth=10,
+    )
+    train_evaluate_model(
+        X_train, y_train, X_test, y_test, hgb_model, model_name="HistGradientBoosting"
     )
 
 

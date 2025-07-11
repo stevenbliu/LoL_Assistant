@@ -17,26 +17,27 @@ from training.plotting import (
 OUTPUT_DIR = "machine_learning/training/mlruns/artifacts"
 
 
-def train_evaluate_baseline_model(X_train, y_train, X_test, y_test):
+def train_evaluate_model(
+    X_train, y_train, X_test, y_test, base_model, model_name="model"
+):
+
+    OUTPUT_DIR = f"machine_learning/training/mlruns/artifacts/{model_name}"
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
     with mlflow.start_run():
-        # Base model
-        base_model = HistGradientBoostingRegressor(
-            max_iter=100,
-            random_state=42,
-            early_stopping=True,
-            validation_fraction=0.1,
-            n_iter_no_change=10,
-            max_depth=10,
-        )
+        # Wrap in MultiOutputRegressor if multi-output and model does not support it natively
+        from sklearn.multioutput import MultiOutputRegressor
 
-        model = MultiOutputRegressor(base_model)
-        mlflow.log_param("model_type", "MultiOutput_HistGradientBoosting")
+        if y_train.shape[1] > 1 and not hasattr(base_model, "predict_multioutput"):
+            model = MultiOutputRegressor(base_model)
+        else:
+            model = base_model
 
-        # Log base model params
+        mlflow.log_param("model_type", model_name)
         for key, value in base_model.get_params().items():
             mlflow.log_param(key, value)
 
-        # Fit
+        # Fit model
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
 
@@ -49,36 +50,40 @@ def train_evaluate_baseline_model(X_train, y_train, X_test, y_test):
         mlflow.log_metric("avg_mse", avg_mse)
 
         # Log model
-        mlflow.sklearn.log_model(model, "hist_gradient_boosting_model")
+        mlflow.sklearn.log_model(model, f"{model_name}_model")
 
-        # Prepare output dir
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-        # 1. Prediction vs Truth Plot
+        # Plots
         pred_plot_path = os.path.join(OUTPUT_DIR, "prediction_vs_truth.png")
         plot_predictions(y_test, y_pred, pred_plot_path)
         mlflow.log_artifact(pred_plot_path)
 
-        # 2. Residuals
         res_plot_path = os.path.join(OUTPUT_DIR, "residuals.png")
         plot_residuals(y_test, y_pred, res_plot_path)
         mlflow.log_artifact(res_plot_path)
 
-        # 3. Feature Importance (note: uses one submodel only)
+        # Feature importance plot — works only if model has feature_importances_ attribute
         feat_plot_path = os.path.join(OUTPUT_DIR, "feature_importance.png")
-        plot_feature_importance(
-            model.estimators_[0], X_test, y_test.iloc[:, 0], feat_plot_path
-        )
-        mlflow.log_artifact(feat_plot_path)
+        try:
+            # For MultiOutputRegressor, take first estimator's feature importance
+            if hasattr(model, "estimators_"):
+                est = model.estimators_[0]
+            else:
+                est = model
+            plot_feature_importance(est, X_test, y_test.iloc[:, 0], feat_plot_path)
+            mlflow.log_artifact(feat_plot_path)
+        except Exception as e:
+            print(f"Warning: Could not plot feature importance: {e}")
 
-        # 4. Learning curve
+        # Learning curve
         learning_curve_path = os.path.join(OUTPUT_DIR, "learning_curve.png")
-        plot_learning_curve(model, X_train, y_train, learning_curve_path)
-        mlflow.log_artifact(learning_curve_path)
+        try:
+            plot_learning_curve(model, X_train, y_train, learning_curve_path)
+            mlflow.log_artifact(learning_curve_path)
+        except Exception as e:
+            print(f"Warning: Could not plot learning curve: {e}")
 
-        # 5. Final train/test evaluation
+        # Train/test evaluation
         y_train_pred = model.predict(X_train)
-
         train_mse = mean_squared_error(y_train, y_train_pred)
         train_rmse = np.sqrt(train_mse)
         train_r2 = r2_score(y_train, y_train_pred)
@@ -95,7 +100,6 @@ def train_evaluate_baseline_model(X_train, y_train, X_test, y_test):
         mlflow.log_metric("train_mse", train_mse)
         mlflow.log_metric("train_rmse", train_rmse)
         mlflow.log_metric("train_r2", train_r2)
-
         mlflow.log_metric("test_mse", test_mse)
         mlflow.log_metric("test_rmse", test_rmse)
         mlflow.log_metric("test_r2", test_r2)
