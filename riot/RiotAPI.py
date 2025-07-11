@@ -34,8 +34,11 @@ def get_summoner_data(game_name, tag_line):
     return r.json()
 
 
-def get_recent_match_ids(puuid, count=1):
-    url = f"https://{MATCH_REGION}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?count={count}"
+def get_ranked_match_ids(puuid, count=1, queue_id=420):  # 420 = Ranked Solo
+    url = (
+        f"https://{MATCH_REGION}.api.riotgames.com/lol/match/v5/matches/by-puuid/"
+        f"{puuid}/ids?count={count}&queue={queue_id}"
+    )
     r = requests.get(url, headers=HEADERS)
     r.raise_for_status()
     return r.json()

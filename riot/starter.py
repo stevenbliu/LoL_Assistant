@@ -1,6 +1,6 @@
 from RiotAPI import (
     get_summoner_data,
-    get_recent_match_ids,
+    get_ranked_match_ids,
     get_match_info,
     get_match_timeline,
 )
@@ -131,50 +131,50 @@ def print_keys(d, prefix=""):
                     print_keys(v, path)
 
 
-def main():
-    summoner_name = "Zdev#1111"
-    game_name, tag_line = summoner_name.split("#")
-    # game_name, tag_line = "Zdev", "1111"
+# def main():
+# summoner_name = "Zdev#1111"
+# game_name, tag_line = summoner_name.split("#")
+# # game_name, tag_line = "Zdev", "1111"
 
-    print(f"Fetching data for summoner: {summoner_name}")
-    summoner_data = get_summoner_data(game_name, tag_line)
-    puuid = summoner_data["puuid"]
+# print(f"Fetching data for summoner: {summoner_name}")
+# summoner_data = get_summoner_data(game_name, tag_line)
+# puuid = summoner_data["puuid"]
 
-    match_ids = get_recent_match_ids(puuid)
-    match_id = match_ids[0]
-    match_info = get_match_info(match_id)
-    timeline = get_match_timeline(match_id)
+# match_ids = get_recent_match_ids(puuid)
+# match_id = match_ids[0]
+# match_info = get_match_info(match_id)
+# timeline = get_match_timeline(match_id)
 
-    unique_events = set()
-    for frame in timeline["info"]["frames"]:
-        if "events" in frame:
-            for event in frame["events"]:
-                if (
-                    event["type"] == "MONSTER_KILL"
-                    or event["type"] == "ELITE_MONSTER_KILL"
-                ):
-                    print(f"Timestamp: {event['timestamp']}ms")
-                    print(f"Monster Type: {event.get('monsterType', 'N/A')}")
-                    print(f"Killer Participant ID: {event.get('killerId', 'N/A')}")
-                    print(f"Monster Subtype: {event.get('monsterSubType', 'N/A')}")
-                    print("---")
-                # if event not in unique_events:
-                unique_events.add(event["type"])
-    print(f"Unique events count: {unique_events}")
+# unique_events = set()
+# for frame in timeline["info"]["frames"]:
+#     if "events" in frame:
+#         for event in frame["events"]:
+#             if (
+#                 event["type"] == "MONSTER_KILL"
+#                 or event["type"] == "ELITE_MONSTER_KILL"
+#             ):
+#                 print(f"Timestamp: {event['timestamp']}ms")
+#                 print(f"Monster Type: {event.get('monsterType', 'N/A')}")
+#                 print(f"Killer Participant ID: {event.get('killerId', 'N/A')}")
+#                 print(f"Monster Subtype: {event.get('monsterSubType', 'N/A')}")
+#                 print("---")
+#             # if event not in unique_events:
+#             unique_events.add(event["type"])
+# print(f"Unique events count: {unique_events}")
 
-    # print_keys(match_info)
-    # print_keys(timeline)
+# # print_keys(match_info)
+# # print_keys(timeline)
 
-    participants = match_info["info"]["participants"]
+# participants = match_info["info"]["participants"]
 
-    jungler_df = extract_jungler_data(timeline, participants)
+# jungler_df = extract_jungler_data(timeline, participants)
 
-    # Print the DataFrame to console
-    print(jungler_df)
+# # Print the DataFrame to console
+# print(jungler_df)
 
-    # Optionally, save to CSV if you want:
-    # jungler_df.to_csv("jungler_stats.csv", index=False)
+# Optionally, save to CSV if you want:
+# jungler_df.to_csv("jungler_stats.csv", index=False)
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+# main()
