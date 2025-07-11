@@ -1,47 +1,31 @@
 import time
 import requests
-import os
 import pandas as pd
-from collections import deque
-from RiotAPI import get_summoner_data, get_recent_match_ids, get_match_info
-from RiotAPI import API_KEY
+from riot.api.ratelimit import RiotRateLimiter
+import riot.config.config as config  # your config.py with API_KEY, TIERS, DIVISIONS, REGION, etc.
 
-REGION = "na1"
-QUEUE_TYPE = "RANKED_SOLO_5x5"
-OUTPUT_CSV = "found_summoners.csv"
+OUTPUT_CSV = config.SUMMONERS_CSV
+API_KEY = config.RIOT_API_KEY
+REGION = config.REGION
+QUEUE_TYPE = config.QUEUE_TYPE
+TIERS = config.TIERS
+DIVISIONS = config.DIVISIONS
 
-TIERS = ["DIAMOND", "PLATINUM"]
-DIVISIONS = ["I", "II", "III", "IV"]
-
-# Throttling setup
-MAX_REQUESTS_PER_SECOND = 20
-MAX_REQUESTS_PER_2_MINUTES = 100
-REQUEST_WINDOW = deque()
-
-
-def rate_limit():
-    now = time.time()
-    REQUEST_WINDOW.append(now)
-
-    # Remove timestamps older than 2 minutes
-    while REQUEST_WINDOW and now - REQUEST_WINDOW[0] > 120:
-        REQUEST_WINDOW.popleft()
-
-    # If we hit 100 requests in the last 2 minutes, wait
-    if len(REQUEST_WINDOW) >= MAX_REQUESTS_PER_2_MINUTES:
-        wait_time = 120 - (now - REQUEST_WINDOW[0])
-        print(f"⏳ Hit 100 reqs/2min limit. Sleeping for {wait_time:.2f}s...")
-        time.sleep(wait_time)
-
-    # Always sleep a little to avoid going over 20 req/sec
-    time.sleep(1 / MAX_REQUESTS_PER_SECOND)
+limiter = RiotRateLimiter(
+    per_second=config.MAX_REQUESTS_PER_SECOND,
+    per_2min=config.MAX_REQUESTS_PER_2_MINUTES,
+)
 
 
-def riot_request(url, params={}):
+def riot_request(url, params=None):
     headers = {"X-Riot-Token": API_KEY}
+    if params is None:
+        params = {}
+
     for _ in range(3):
-        rate_limit()
+        limiter.wait()
         response = requests.get(url, headers=headers, params=params)
+
         if response.status_code == 429:
             print("⏳ Rate limited (429). Waiting 2s...")
             time.sleep(2)
@@ -60,49 +44,54 @@ def get_players_by_rank(tier, division, page=1):
 
 
 def get_winrate(entry):
-    wins = entry["wins"]
-    losses = entry["losses"]
+    wins = entry.get("wins", 0)
+    losses = entry.get("losses", 0)
     return wins, wins + losses
 
 
-def main():
+def find_good_summoners(min_games=15, min_winrate=0.55):
     good_players = []
-
     try:
         for tier in TIERS:
-            for div in DIVISIONS:
-                print(f"📦 Searching {tier} {div}...")
+            for division in DIVISIONS:
+                print(f"📦 Searching {tier} {division}...")
                 page = 1
+
                 while True:
-                    entries = get_players_by_rank(tier, div, page)
+                    entries = get_players_by_rank(tier, division, page)
                     if not entries:
+                        print(
+                            f"No more entries found for {tier} {division} page {page}."
+                        )
                         break
 
                     for entry in entries:
                         try:
-                            summonerId = entry["summonerId"]
+                            # print(f"Processing SummonerId: {entry}")
+
+                            leagueId = entry["leagueId"]
                             puuid = entry["puuid"]
                             wins, total = get_winrate(entry)
 
-                            if total >= 15:
+                            if total >= min_games:
                                 winrate = wins / total
-                                if winrate >= 0.55:
+                                if winrate >= min_winrate:
                                     print(
-                                        f"✅ SummonerId: {summonerId}: W/L: {wins}/{total} WR%:({winrate:.0%})"
+                                        f"✅ leagueId: {leagueId}: W/L: {wins}/{total} WR%: {winrate:.0%}"
                                     )
                                     good_players.append(
                                         {
-                                            "summonerId": summonerId,
+                                            "leagueId": leagueId,
                                             "puuid": puuid,
                                             "tier": tier,
-                                            "division": div,
+                                            "division": division,
                                             "winrate": round(winrate, 2),
                                             "games": total,
                                         }
                                     )
                         except Exception as e:
                             print(
-                                f"❌ Failed for {entry.get('summonerName', 'UNKNOWN')}: {e}"
+                                f"❌ Failed for entry {entry.get('leagueId', 'UNKNOWN')}: {e}"
                             )
                             continue
 
@@ -111,10 +100,4 @@ def main():
     except KeyboardInterrupt:
         print("\n🛑 Interrupted by user. Saving progress...")
 
-    df = pd.DataFrame(good_players)
-    df.to_csv(OUTPUT_CSV, index=False)
-    print(f"\n📝 Saved {len(df)} summoners to {OUTPUT_CSV}")
-
-
-if __name__ == "__main__":
-    main()
+    return good_players

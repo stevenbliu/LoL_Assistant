@@ -1,4 +1,4 @@
-from RiotAPI import (
+from riot.api.api_requests import (
     get_summoner_data,
     get_ranked_match_ids,
     get_match_info,
@@ -6,9 +6,6 @@ from RiotAPI import (
 )
 
 import pandas as pd  # Import pandas
-
-
-import pandas as pd
 import math
 
 

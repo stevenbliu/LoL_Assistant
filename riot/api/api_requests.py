@@ -3,15 +3,17 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 import pandas as pd  # Import pandas
+from riot.config.config import RIOT_API_KEY
 
 # Get the root directory (parent of the script's parent folder)
-root_dir = Path(__file__).resolve().parent.parent  # goes two levels up
+# root_dir = Path(__file__).resolve().parent.parent  # goes two levels up
 # os.environ.clear()
 
 # Load .env from the root directory
-load_dotenv(dotenv_path=root_dir / ".env")
+# load_dotenv(dotenv_path=root_dir / ".env")
 
-API_KEY = os.getenv("RIOT_DEV_API_KEY")
+API_KEY = RIOT_API_KEY
+
 if not API_KEY:
     raise ValueError("Missing RIOT_DEV_API_KEY in environment variables")
 print("API Key:", API_KEY)  # Debugging line to check if the key is loaded

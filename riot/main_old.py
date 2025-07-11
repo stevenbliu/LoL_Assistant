@@ -1,6 +1,8 @@
 import os
 import time
 import pandas as pd
+from datetime import datetime
+
 from RiotAPI import (
     get_summoner_data,
     get_ranked_match_ids,
@@ -8,17 +10,19 @@ from RiotAPI import (
     get_match_timeline,
 )
 from starter import extract_jungler_data
-from RiotRateLimiter import RiotRateLimiter  # your rate limiter
+from RiotRateLimiter import RiotRateLimiter
+from versioning import save_metadata
 
-OUTPUT_DIR = "database/riot_data"
+# === Configuration ===
+DATA_VERSION = "v1"  # <-- update as needed
+BASE_OUTPUT_DIR = os.path.join("database", "riot_data", DATA_VERSION)
+MATCH_DATA_DIR = os.path.join(BASE_OUTPUT_DIR, "match_data")
+SUMMONERS_CSV = os.path.join("database", "riot_data", "found_summoners.csv")
 MATCHES_PER_BATCH = 40
-SUMMONERS_CSV = (
-    "database/riot_data/found_summoners.csv"  # your summoner list with progress
-)
 
+# === Setup ===
 limiter = RiotRateLimiter()
-
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(MATCH_DATA_DIR, exist_ok=True)
 
 
 def safe_request_wrapper(func, *args, **kwargs):
@@ -35,7 +39,6 @@ def safe_request_wrapper(func, *args, **kwargs):
 def main():
     df_summoners = pd.read_csv(SUMMONERS_CSV)
 
-    # Add 'processed' column if missing
     if "processed" not in df_summoners.columns:
         df_summoners["processed"] = False
 
@@ -49,29 +52,28 @@ def main():
                 f"\n➡️ Processing summoner {summoner_id} ({idx+1}/{len(df_summoners)})"
             )
 
-            dir_path = os.path.join(OUTPUT_DIR, "match_data")
-            os.makedirs(dir_path, exist_ok=True)
-            processed_files = set(os.listdir(dir_path))
+            processed_files = set(os.listdir(MATCH_DATA_DIR))
 
             while True:
                 match_ids = safe_request_wrapper(
                     get_ranked_match_ids,
                     puuid,
                     count=MATCHES_PER_BATCH,
-                    queue_id=420,  # 420 = Ranked Solo
+                    queue_id=420,
                 )
+
                 if not match_ids:
-                    print("No more matches found for this summoner, moving on.")
+                    print("No more matches found for this summoner.")
                     break
 
                 new_match_found = False
 
                 for match_id in match_ids:
                     filename = f"{match_id}.csv"
-                    output_path = os.path.join(dir_path, filename)
+                    output_path = os.path.join(MATCH_DATA_DIR, filename)
 
                     if filename in processed_files:
-                        print(f"✅ Already processed match: {match_id}")
+                        print(f"✅ Already processed: {match_id}")
                         continue
 
                     try:
@@ -85,54 +87,46 @@ def main():
 
                         all_jungler_dfs.append(jungler_df)
                         processed_files.add(filename)
-                        print(f"💾 Saved match data: {filename}")
 
+                        print(f"💾 Saved: {filename}")
                         new_match_found = True
-
                     except Exception as e:
-                        print(f"❌ Failed to process match {match_id}: {e}")
+                        print(f"❌ Failed to process {match_id}: {e}")
 
                 if not new_match_found:
-                    print(
-                        "No new matches processed in this batch, moving to next summoner."
-                    )
+                    print("No new matches processed in this batch.")
                     break
 
-                print("⏱ Waiting before next batch for this summoner...\n")
-                time.sleep(30)  # adjust for rate limit and expected new matches
+                print("⏱ Waiting before next batch...")
+                time.sleep(30)
 
-            # Mark summoner as processed and save progress
             df_summoners.at[idx, "processed"] = True
             df_summoners.to_csv(SUMMONERS_CSV, index=False)
-            print(f"✅ Marked summoner {summoner_id} as processed.")
+            print(f"✅ Marked {summoner_id} as processed.")
 
     except KeyboardInterrupt:
-        print("\n🛑 Interrupted by user! Saving progress and combined data...")
+        print("\n🛑 Interrupted by user. Saving...")
 
-    # Save combined dataset on exit
-    full_path = os.path.join(OUTPUT_DIR, "all_jungler_data.csv")
+    # Save final combined dataset
+    combined_path = os.path.join(BASE_OUTPUT_DIR, "all_jungler_data.csv")
 
     if all_jungler_dfs:
-        # Load existing data if the file exists
-        if os.path.exists(full_path):
-            existing_df = pd.read_csv(full_path)
-            print(f"📂 Loaded {len(existing_df)} existing rows from previous CSV.")
+        if os.path.exists(combined_path):
+            existing_df = pd.read_csv(combined_path)
+            print(f"📂 Loaded {len(existing_df)} existing rows.")
         else:
             existing_df = pd.DataFrame()
 
-        # Concatenate new and old data
         new_data = pd.concat(all_jungler_dfs, ignore_index=True)
-        full_df = pd.concat([existing_df, new_data], ignore_index=True)
+        full_df = pd.concat(
+            [existing_df, new_data], ignore_index=True
+        ).drop_duplicates()
 
-        # Drop duplicates by MatchId (or MatchId + player ID if needed)
-        # full_df.drop_duplicates(subset=["MatchId", ], inplace=True)
-        full_df.drop_duplicates(inplace=True)
-
-        # Save back to CSV
-        full_df.to_csv(full_path, index=False)
+        full_df.to_csv(combined_path, index=False)
         print(
-            f"✅ Updated {full_path} with {len(new_data)} new rows, total matches: {len(full_df['MatchId'].unique())}"
+            f"✅ Final dataset saved: {combined_path} | Total matches: {full_df['MatchId'].nunique()}"
         )
+        save_metadata(BASE_OUTPUT_DIR, full_df)
 
 
 if __name__ == "__main__":
