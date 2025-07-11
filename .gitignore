@@ -1,2 +1,40 @@
-.env
-.csv
+# MLflow artifacts
+mlruns/
+mlartifacts/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Conda / virtual environment
+env/
+venv/
+.myenv/
+*.env
+*.venv
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Model files
+*.pkl
+*.h5
+*.joblib
+
+# VS Code
+.vscode/
+
+# Optional: data & model outputs
+*.csv
+*.json
+*.npy
+*.npz
