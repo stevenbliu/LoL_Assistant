@@ -1,100 +1,102 @@
-**🧠 Project Summary: League of Legends Jungler Behavior Prediction**
-🎯 Goal
-To predict jungler movement over time by analyzing match timelines, using machine learning to forecast their next position on the map (x_next, y_next).
+*League of Legends Jungler Behavior Prediction*
+🧠 Project Summary
+Predict jungler movement on the League of Legends map over time by analyzing match timelines. The goal is to forecast each jungler’s next position coordinates (x_next, y_next) using machine learning.
 
 🏗️ Pipeline Overview
-✅ 1. Data Collection
+1. Data Collection
 Input: List of summoners in found_summoners.csv
 
 Uses Riot API to fetch:
 
 Ranked Solo matches (queue=420)
 
-Match data and timelines
+Match info and timelines
 
-Extracts per-match jungler data using extract_jungler_data()
+Extracts jungler-specific data per match via extract_jungler_data()
 
-Each match saved as a CSV file under match_data/
+Saves each match as a CSV in match_data/ folder
 
-Final dataset is consolidated into all_jungler_data.csv
+Consolidates all matches into all_jungler_data.csv
 
-Supports resumable execution via the processed flag in summoner CSV
+Supports resumable runs by tracking processed matches
 
-✅ 2. Data Structure
-Each row (time step) contains:
+2. Data Structure
+Each row represents a time step in a match
 
-Match metadata (e.g. Second, MatchId)
+Includes:
 
-Player-specific features:
+Match metadata (e.g., Second, MatchId)
 
-P1_Champion, P1_X, P1_Y, P1_JungleMinionsKilled, etc.
+Player-specific features (P1_Champion, P1_X, P1_Y, P1_JungleMinionsKilled, etc.)
 
-P2_* (opposing jungler)
+Opponent jungler features (P2_*)
 
-Labels (target values): P1_x_next, P1_y_next, P2_x_next, P2_y_next
+Target labels: P1_x_next, P1_y_next, P2_x_next, P2_y_next
 
-Derived stats like Distance_Between_Junglers
+Derived stats like distance between junglers
 
-Total data so far:
-~4,500 rows (~90–100 matches), with updates appending new match data to avoid duplicates
+Current data: ~4,500 rows (~90–100 matches)
 
-🤖 Modeling
-Regression model predicts each jungler's next map position every 60 seconds
+New matches append to dataset without duplication
 
-Evaluated using:
+🤖 Modeling Approach
+Regression models predict next map coordinates every 60 seconds
 
-MAE, MSE, RMSE, R²
+Evaluation metrics: MAE, MSE, RMSE, R²
 
-Logged using MLflow
+Results tracked and visualized with MLflow
 
-📉 Latest Metrics:
-Test R² = 0.056 → indicates limited predictive power
+📉 Latest Performance Highlights
+Test R² ≈ 0.056 (indicates limited predictive power)
 
-RMSE ≈ 0.21 → decent spatial error but room for improvement
+RMSE ≈ 0.21 (decent spatial error, room to improve)
 
-Top features:
-
-P1_JungleMinionsKilled, P2_JungleMinionsKilled, P2_Y, P1_Y, Second
+Important features: P1_JungleMinionsKilled, P2_JungleMinionsKilled, P2_Y, P1_Y, Second
 
 🚧 Limitations & Challenges
-Low R² suggests the model is only marginally better than a baseline
+Low R² suggests model only marginally outperforms baseline
 
 Some features have zero or negative importance
 
-~100 matches = not enough to learn meaningful behavior patterns
+Current dataset (~300 matches) likely too small for complex patterns
 
-✅ Next Steps 
-🔁 Data
-Increase to 1,000+ ranked jungle matches (Games are limited by Riot's rate limiters. Feel free to reach out to me if you want what I have so far.)
+✅ Next Steps
+Data
+Expand dataset to 1,000+ ranked jungle matches
 
-Improve feature engineering (e.g. dx/dy, map zones, path memory)
+Handle Riot API rate limits during data collection
 
-📈 Model
-Try LSTM or sequence-based models (movement is not memoryless)
+Contact for existing dataset if interested
 
-Add map-objective features (camp proximity, dragon timers)
+Feature Engineering
+Add movement deltas (dx/dy), map zone features, path memory
 
-📊 Analysis
-Visualize actual vs predicted positions
+Incorporate map objectives (camp proximity, dragon timers)
 
-Analyze differences by champ, patch, or role matchup
+Modeling
+Explore sequence models (e.g., LSTM, Transformer) for temporal dependencies
 
+Improve model interpretability and validation
 
-**Sample high-level pipeline flow:**
+Analysis & Visualization
+Compare actual vs predicted positions visually
 
-Summoner List CSV
-       ↓
-Riot API Calls (Ranked Match IDs, Match Info, Timeline)
-       ↓
-Data Extraction (extract_jungler_data)
-       ↓
-Match CSV files (one per match) + processed tracking
-       ↓
-Concatenate to full dataset CSV (all_jungler_data.csv)
-       ↓
-ML Model Training & Evaluation (Predictions, Metrics, Logging)
-       ↓
+Analyze performance by champion, patch version, role matchups
+
+📊 Pipeline Flow Summary
+sql
+Copy
+Edit
+Summoner List CSV 
+      ↓
+Riot API Calls 
+      ↓
+Data Extraction (extract_jungler_data) 
+      ↓
+Per-match CSV files + processed tracking 
+      ↓
+Concatenate to full dataset CSV (all_jungler_data.csv) 
+      ↓
+ML Model Training & Evaluation 
+      ↓
 Feature Importance & Residual Analysis
-
-
-![CI](https://github.com/stevenbliu/LoL_assistant/actions/workflows/ci.yml/badge.svg)
