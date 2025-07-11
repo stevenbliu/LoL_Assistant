@@ -12,6 +12,13 @@
         - Predict pathing of enemy jungler! From their historical matches, we should know how they typically path. 
             - We can use similarity checks for team composition + other ML methods to determine it. 
             - It would be key to use similarity checks at different time ranges of the game, as compositions can change mid-game.
+        - [x] Pre-processing of raw data from Riot API Data
+        - [x] SKLEARN model as a baseline 
+            -[~] Tuning
+            -[x] Generate some metrics/plots
+                - [x] Prediction vs True Scatter
+                - [x] Residuals
+                - [x] Feature Importance
 - [ ] Riot API Data 
     - [~] Determine where to get historical match data. 
         - OP.gg sounds good because of lane score
@@ -19,6 +26,8 @@
             - Succesfully managed collected data, contains x,y coordinates of players! We can use this to know camp clear path. 
             - Unfortunately, lacks granularity. Match data timesteps is 60s, that is a bit too long. 
         - [~] Investigating replay data via Live Client API to see what kind of data we can get from there.
+        - [x] Currently using this to generate datasets of multiple matches
+
 - [ ] Live Client
     - [x] Successfully integrated for real games, but data is too limited. Nothing useful can be collected durring a live match with Live Client. ~~(failed)~~
         - So in order to collect real-game data, we implemented a Computer Vision program to collect data by capturing it on screen.
@@ -27,6 +36,7 @@
         - Download replay `/spectator/v4/download`. Parse the .rofl file with RoflParser or League of Stats. Processed and store data. Delete replay.
         - Unfortunately, Riot's API doesn't provide replays for Public games. Only for games you played yourself.
         - Possibly slow collect granular data over time? Users have the option to assist in collecting data for this? Until then, we may have to use the 60s.
-
+        - Investgated .rofl files. In order to get info from it, we will have to reverse-engineer it. Very difficult and time consuming process, so we cannot use replays.
+        - Alternative is to once again use CV to try to solve it. Might do this.
 
 # NOTES:

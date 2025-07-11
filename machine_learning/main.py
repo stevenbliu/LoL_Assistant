@@ -17,7 +17,8 @@ def main():
     processed_df.to_csv(f"{DATA_DIR}/jungler_training_data.csv", index=False)
 
     X_train, X_test, y_train, y_test, encoders = prepare_ml_data(processed_df)
-
+    print(X_train, y_train)
+    # exit()
     if VERBOSE:
         print_dataset_info(
             raw_df, processed_df, X_train, y_train, X_test, y_test, encoders
