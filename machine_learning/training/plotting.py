@@ -8,20 +8,28 @@ import pandas as pd
 
 
 def plot_predictions(y_test, y_pred, output_path):
-    coords = ["P1_x_next", "P1_y_next", "P2_x_next", "P2_y_next"]
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    axes = axes.ravel()
+    target_names = y_test.columns.tolist()
+    num_targets = len(target_names)
+    num_cols = 2
+    num_rows = int(np.ceil(num_targets / num_cols))
 
-    for i, coord in enumerate(coords):
-        axes[i].scatter(y_test.iloc[:, i], y_pred[:, i], alpha=0.5)
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(6 * num_cols, 5 * num_rows))
+    axes = np.atleast_1d(axes).flatten()
+
+    print("\n📊 Prediction Metrics:")
+
+    for i, name in enumerate(target_names):
+        true_vals = y_test.iloc[:, i]
+        pred_vals = y_pred[:, i]
+
+        axes[i].scatter(true_vals, pred_vals, alpha=0.5)
         axes[i].plot([0, 1], [0, 1], "r--")
-        axes[i].set_xlabel(f"True {coord}")
-        axes[i].set_ylabel(f"Predicted {coord}")
-        axes[i].set_title(f"{coord} Prediction vs True")
+        axes[i].set_xlabel(f"True {name}")
+        axes[i].set_ylabel(f"Predicted {name}")
+        axes[i].set_title(f"{name} Prediction vs True")
 
-        # Print per-coordinate MAE
-        mae = mean_absolute_error(y_test.iloc[:, i], y_pred[:, i])
-        print(f"{coord} MAE: {mae:.4f}")
+        mae = mean_absolute_error(true_vals, pred_vals)
+        print(f" - {name} MAE: {mae:.4f}")
 
     # Overall metrics
     mse = mean_squared_error(y_test, y_pred)
@@ -30,6 +38,9 @@ def plot_predictions(y_test, y_pred, output_path):
     print(f"\nOverall MSE: {mse:.4f}")
     print(f"Overall RMSE: {rmse:.4f}")
     print(f"Overall R² Score: {r2:.4f}")
+
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])  # clean up unused axes
 
     plt.tight_layout()
     fig.savefig(output_path)
@@ -40,12 +51,11 @@ def plot_residuals(y_test, y_pred, output_path):
     residuals = y_test.values - y_pred
     fig, ax = plt.subplots(figsize=(10, 6))
     sns.histplot(residuals.flatten(), bins=50, kde=True, ax=ax)
-    ax.set_title("Distribution of Residuals (All Coordinates)")
+    ax.set_title("Distribution of Residuals (All Outputs Combined)")
     fig.savefig(output_path)
     plt.close(fig)
 
-    print("\nResidual Analysis:")
-    print("Range of targets:\n", y_test.describe())
+    print("\n📉 Residual Analysis:")
     print("Residuals Mean:", np.mean(residuals))
     print("Residuals Std Dev:", np.std(residuals))
 
@@ -66,9 +76,9 @@ def plot_feature_importance(model, X_test, y_test, output_path):
     fig.savefig(output_path)
     plt.close(fig)
 
-    print("\nFeature Importances:")
+    print("\n📌 Feature Importances:")
     for name, importance in zip(sorted_features, sorted_importance):
-        print(f"{name}: {importance:.5f}")
+        print(f" - {name}: {importance:.5f}")
 
 
 def plot_learning_curve(model, X, y, output_path, scoring="neg_mean_squared_error"):
@@ -85,12 +95,13 @@ def plot_learning_curve(model, X, y, output_path, scoring="neg_mean_squared_erro
     val_errors = -val_scores.mean(axis=1)
 
     plt.figure(figsize=(8, 6))
-    plt.plot(train_sizes, train_errors, label="Training error")
-    plt.plot(train_sizes, val_errors, label="Validation error")
-    plt.xlabel("Training set size")
+    plt.plot(train_sizes, train_errors, label="Training Error")
+    plt.plot(train_sizes, val_errors, label="Validation Error")
+    plt.xlabel("Training Set Size")
     plt.ylabel("MSE")
     plt.title("Learning Curve")
     plt.legend()
     plt.grid(True)
+    plt.tight_layout()
     plt.savefig(output_path)
     plt.close()

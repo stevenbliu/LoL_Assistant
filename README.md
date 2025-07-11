@@ -1,4 +1,4 @@
-🧠 Project Summary: League of Legends Jungler Behavior Prediction
+**🧠 Project Summary: League of Legends Jungler Behavior Prediction**
 🎯 Goal
 To predict jungler movement over time by analyzing match timelines, using machine learning to forecast their next position on the map (x_next, y_next).
 
@@ -65,7 +65,7 @@ Some features have zero or negative importance
 
 ✅ Next Steps 
 🔁 Data
-Increase to 1,000+ ranked jungle matches
+Increase to 1,000+ ranked jungle matches (Games are limited by Riot's rate limiters. Feel free to reach out to me if you want what I have so far.)
 
 Improve feature engineering (e.g. dx/dy, map zones, path memory)
 
@@ -79,6 +79,22 @@ Visualize actual vs predicted positions
 
 Analyze differences by champ, patch, or role matchup
 
+
+**Sample high-level pipeline flow:**
+
+Summoner List CSV
+       ↓
+Riot API Calls (Ranked Match IDs, Match Info, Timeline)
+       ↓
+Data Extraction (extract_jungler_data)
+       ↓
+Match CSV files (one per match) + processed tracking
+       ↓
+Concatenate to full dataset CSV (all_jungler_data.csv)
+       ↓
+ML Model Training & Evaluation (Predictions, Metrics, Logging)
+       ↓
+Feature Importance & Residual Analysis
 
 
 ![CI](https://github.com/stevenbliu/LoL_assistant/actions/workflows/ci.yml/badge.svg)

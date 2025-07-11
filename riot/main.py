@@ -125,7 +125,8 @@ def main():
         full_df = pd.concat([existing_df, new_data], ignore_index=True)
 
         # Drop duplicates by MatchId (or MatchId + player ID if needed)
-        full_df.drop_duplicates(subset=["MatchId"], inplace=True)
+        # full_df.drop_duplicates(subset=["MatchId", ], inplace=True)
+        full_df.drop_duplicates(inplace=True)
 
         # Save back to CSV
         full_df.to_csv(full_path, index=False)

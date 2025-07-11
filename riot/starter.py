@@ -31,7 +31,7 @@ def extract_jungler_data(timeline, participants):
         timestamps.append(frame["timestamp"] // 1000)
 
     data = {
-        "Second": timestamps,
+        "Timestamp": timestamps,
         # Player 1 data
         "P1_Player": [],
         "P1_Champion": [],
