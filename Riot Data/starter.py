@@ -8,60 +8,109 @@ from RiotAPI import (
 import pandas as pd  # Import pandas
 
 
+import pandas as pd
+import math
+
+
 def extract_jungler_data(timeline, participants):
     junglers = [p for p in participants if p["individualPosition"].upper() == "JUNGLE"]
-    # Sort or order by participantId to keep consistent order
+    # Sort by participantId for consistency
     junglers = sorted(junglers, key=lambda p: p["participantId"])
 
-    # Collect all timestamps from frames (in seconds)
+    # Safety: if less than 2 junglers, return empty df or handle accordingly
+    if len(junglers) < 2:
+        print("Less than 2 junglers found in match.")
+        return pd.DataFrame()
+
+    # Take only the first two junglers
+    j1, j2 = junglers[:2]
+
+    # Collect timestamps (seconds)
     timestamps = []
     for frame in timeline["info"]["frames"]:
-        timestamp_ms = frame["timestamp"]
-        seconds = timestamp_ms // 1000
-        timestamps.append(seconds)
-        # timestamps.append(timestamp_ms)
+        timestamps.append(frame["timestamp"] // 1000)
 
-    # Initialize dict to hold per-jungler data keyed by timestamp (seconds)
-    # data = {"Minute": [f"{t // 60}:{t % 60:02d}" for t in timestamps]}
-    # data = {[t for t in timestamps]}
-    data = {"Second": timestamps}
+    data = {
+        "Second": timestamps,
+        # Player 1 data
+        "P1_Player": [],
+        "P1_Champion": [],
+        "P1_MinionsKilled": [],
+        "P1_JungleMinionsKilled": [],
+        "P1_X": [],
+        "P1_Y": [],
+        "P1_Team": [],
+        "P1_Position": [],
+        # Player 2 data
+        "P2_Player": [],
+        "P2_Champion": [],
+        "P2_MinionsKilled": [],
+        "P2_JungleMinionsKilled": [],
+        "P2_X": [],
+        "P2_Y": [],
+        "P2_Team": [],
+        "P2_Position": [],
+        # Interaction features
+        "Distance_Between_Junglers": [],
+    }
 
-    # For each jungler, collect lists for each stat, keyed by participantId
-    for jungler in junglers:
-        pid = str(jungler["participantId"])
-        player_name = (
-            jungler.get("summonerName")
-            or jungler.get("riotIdGameName")
-            or f"Player{pid}"
-        )
-        champion_name = jungler["championName"]
-        position = jungler["individualPosition"]
-        team = jungler["teamId"]
+    # Extract constant info for each player
+    def get_player_info(j):
+        pid = str(j["participantId"])
+        return {
+            "pid": pid,
+            "player_name": j.get("summonerName")
+            or j.get("riotIdGameName")
+            or f"Player{pid}",
+            "champion": j["championName"],
+            "team": j["teamId"],
+            "position": j["individualPosition"],
+        }
 
-        minions_killed_list = []
-        jungle_minions_killed_list = []
-        x_list = []
-        y_list = []
+    p1_info = get_player_info(j1)
+    p2_info = get_player_info(j2)
 
-        for frame in timeline["info"]["frames"]:
-            p_data = frame["participantFrames"][pid]
-            minions_killed_list.append(p_data.get("minionsKilled", 0))
-            jungle_minions_killed_list.append(p_data.get("jungleMinionsKilled", 0))
-            pos = p_data.get("position", {"x": None, "y": None})
-            x_list.append(pos.get("x"))
-            y_list.append(pos.get("y"))
+    for frame in timeline["info"]["frames"]:
+        p1_data = frame["participantFrames"][p1_info["pid"]]
+        p2_data = frame["participantFrames"][p2_info["pid"]]
 
-        # Add columns per jungler with player name and stat
-        # prefix = f"{player_name} ({champion_name})"
-        prefix = pid
-        data[f"{prefix}_Player"] = [player_name] * len(timestamps)
-        data[f"{prefix}_Champion"] = [champion_name] * len(timestamps)
-        data[f"{prefix}_MinionsKilled"] = minions_killed_list
-        data[f"{prefix}_JungleMinionsKilled"] = jungle_minions_killed_list
-        data[f"{prefix}_X"] = x_list
-        data[f"{prefix}_Y"] = y_list
-        data[f"{prefix}_Team"] = [team] * len(timestamps)
-        data[f"{prefix}_Position"] = [position] * len(timestamps)
+        # Positions
+        p1_pos = p1_data.get("position", {"x": None, "y": None})
+        p2_pos = p2_data.get("position", {"x": None, "y": None})
+
+        # Calculate Euclidean distance if positions available
+        if (
+            p1_pos["x"] is not None
+            and p1_pos["y"] is not None
+            and p2_pos["x"] is not None
+            and p2_pos["y"] is not None
+        ):
+            dist = math.sqrt(
+                (p1_pos["x"] - p2_pos["x"]) ** 2 + (p1_pos["y"] - p2_pos["y"]) ** 2
+            )
+        else:
+            dist = None
+
+        # Append data
+        data["P1_Player"].append(p1_info["player_name"])
+        data["P1_Champion"].append(p1_info["champion"])
+        data["P1_MinionsKilled"].append(p1_data.get("minionsKilled", 0))
+        data["P1_JungleMinionsKilled"].append(p1_data.get("jungleMinionsKilled", 0))
+        data["P1_X"].append(p1_pos.get("x"))
+        data["P1_Y"].append(p1_pos.get("y"))
+        data["P1_Team"].append(p1_info["team"])
+        data["P1_Position"].append(p1_info["position"])
+
+        data["P2_Player"].append(p2_info["player_name"])
+        data["P2_Champion"].append(p2_info["champion"])
+        data["P2_MinionsKilled"].append(p2_data.get("minionsKilled", 0))
+        data["P2_JungleMinionsKilled"].append(p2_data.get("jungleMinionsKilled", 0))
+        data["P2_X"].append(p2_pos.get("x"))
+        data["P2_Y"].append(p2_pos.get("y"))
+        data["P2_Team"].append(p2_info["team"])
+        data["P2_Position"].append(p2_info["position"])
+
+        data["Distance_Between_Junglers"].append(dist)
 
     df = pd.DataFrame(data)
     return df
