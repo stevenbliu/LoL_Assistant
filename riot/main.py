@@ -8,11 +8,9 @@ from RiotAPI import (
 
 from starter import extract_jungler_data
 
-# from preprocessing import preprocess_for_training
-
 import pandas as pd
 
-OUTPUT_DIR = "riot_data/match_data"
+OUTPUT_DIR = "database/riot_data"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
@@ -26,12 +24,29 @@ def main():
 
     match_ids = get_recent_match_ids(puuid, count=20)  # Fetch 20 recent matches
 
-    all_jungler_dfs = []
+    if not match_ids:
+        print("No recent matches found. Exiting.")
+        return
 
-    for match_id in match_ids:
-        output_path = os.path.join(OUTPUT_DIR, f"{match_id}.csv")
+    all_jungler_dfs = []
+    dir_path = os.path.join(OUTPUT_DIR, "match_data")
+    os.makedirs(dir_path, exist_ok=True)
+
+    processed_count = 0
+    skipped_count = 0
+    failed_count = 0
+
+    total_matches = len(match_ids)
+    print(f"Found {total_matches} matches to process.")
+
+    for idx, match_id in enumerate(match_ids, start=1):
+        output_path = os.path.join(dir_path, f"{match_id}.csv")
+
         if os.path.exists(output_path):
-            print(f"Skipping already processed match: {match_id}")
+            print(
+                f"[{idx}/{total_matches}] Skipping already processed match: {match_id}"
+            )
+            skipped_count += 1
             continue
 
         try:
@@ -45,14 +60,22 @@ def main():
             jungler_df.to_csv(output_path, index=False)
             all_jungler_dfs.append(jungler_df)
 
-            print(f"Saved: {output_path}")
+            processed_count += 1
+            print(f"[{idx}/{total_matches}] Saved: {output_path}")
         except Exception as e:
-            print(f"Failed to process match {match_id}: {e}")
+            failed_count += 1
+            print(f"[{idx}/{total_matches}] Failed to process match {match_id}: {e}")
+
+    print(f"\nSummary:")
+    print(f"Processed matches: {processed_count}")
+    print(f"Skipped matches: {skipped_count}")
+    print(f"Failed matches: {failed_count}")
 
     # Optional: merge all into one DataFrame
     if all_jungler_dfs:
         full_df = pd.concat(all_jungler_dfs, ignore_index=True)
-        full_df.to_csv("all_jungler_data.csv", index=False)
+        output_path = os.path.join(OUTPUT_DIR, "all_jungler_data.csv")
+        full_df.to_csv(output_path, index=False)
         print("Saved combined dataset as all_jungler_data.csv")
 
 
