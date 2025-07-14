@@ -8,20 +8,68 @@
         - Very difficult
     - So we currently have real-time data for CS! This is great!
 
-- [ ] ML
-    - [ ] Main goal!
-        - Predict pathing of enemy jungler! From their historical matches, we should know how they typically path. 
-            - We can use similarity checks for team composition + other ML methods to determine it.
-            - It would be key to use similarity checks at different time ranges of the game, as compositions can change mid-game.
-        - [x] Pre-processing of raw data from Riot API Data
-        - [x] SKLEARN model as a baseline
-            - [~] Tuning ongoing
-            - [x] Generate some metrics/plots
-                - [x] Prediction vs True Scatter
-                - [x] Residuals
-                - [x] Feature Importance
-        - [~] Current model achieves limited R² (~0.05), indicating room for improved feature engineering and model complexity
-        - [~] Need to increase dataset size (~1000+ ranked jungle matches) for better model generalization
+- [ ] **ML Project: Predict Enemy Jungler Pathing**
+    - [ ] **🎯 Main Goal**
+        - Predict the **enemy jungler's pathing** using their historical match data.
+            - Use **similarity checks** on team compositions and other contextual factors to guide prediction.
+            - Evaluate **similarity over time** — early, mid, late — since compositions and objectives shift.
+    - [x] **📦 Preprocessing**
+        - Raw data from Riot API cleaned, engineered, and encoded.
+    - [x] **📈 Baseline Model (Scikit-learn)**
+        - [x] Multi-target regression (predicting `P2_X`, `P2_Y`)
+        - [~] Hyperparameter tuning in progress
+        - [x] Basic metrics & visualizations:
+            - [x] ✅ True vs Predicted Scatter Plot
+            - [x] ✅ Residuals Plot
+            - [x] ✅ Feature Importance Bar Chart
+    - [~] **📉 Model Performance**
+        - Current R² ≈ **0.05–0.10**, shows model is learning but **not generalizing well yet**
+        - Indicates a need for:
+            - Better feature engineering
+            - More advanced models (e.g., LightGBM, XGBoost, or deep learning)
+            - Possibly temporal models (sequence models like RNNs or Transformers)
+    - [x] **📊 Data Expansion**
+        - Goal: Use **1000+ ranked jungle matches**
+        - Larger dataset expected to improve generalization and pattern capture
+    - [ ] **🧠 Feature Set Overview**
+        - [x] **Raw Features (from Riot API)**
+            - `P1_X`, `P1_Y`, `P2_X`, `P2_Y`: Absolute map positions of both junglers
+            - `P1_currentGold`, `P2_currentGold`
+            - `P1_level`, `P2_level`
+            - `P1_MinionsKilled`, `P2_MinionsKilled`
+            - `P1_totalDamageDone`, `P1_totalDamageTaken`, etc.
+            - `Timestamp`: Current match time in milliseconds
+
+        - [x] **Engineered Features**
+            - 📊 **Delta Metrics**
+                - `delta_gold` = `P1_currentGold` - `P2_currentGold`
+                - `delta_level` = `P1_level` - `P2_level`
+                - `delta_minionsKilled` = `P1_MinionsKilled` - `P2_MinionsKilled`
+            - 📏 **Relative Positioning**
+                - ⚠️ `distance_x` = `P1_X` - `P2_X` *(REMOVED — can't use enemy positions during inference)*
+                - ⚠️ `distance_y` = `P1_Y` - `P2_Y` *(REMOVED — same reason as above)*
+            - ⏱ **Temporal Features**
+                - `game_phase`: early, mid, late (based on time bins)
+                - `gold_per_minute_P1`, `gold_per_minute_P2`
+            - 💥 **Domain-Aware Features**
+                - `P1_damage_efficiency` = damage dealt / (damage taken + ε)
+                - `P2_damage_efficiency` = same for enemy
+                - `P1_aggression` = (damage + gold) / time
+                - `P2_aggression` = same
+
+        - [x] **Label / Target Columns**
+            - Currently predicting: `P2_X`, `P2_Y`
+                - Intended to model **enemy jungler position over time**
+
+        - [~] **Planned / Future Features**
+            - Team composition similarity (e.g., % AD/AP, CC, scaling)
+            - Lane states (pushed lanes, roamed lanes)
+            - Ally/enemy ward coverage (from vision events or replays)
+            - Objective timers (next dragon/baron, tower HP)
+
+    - [ ] **Removed / Invalid Features**
+        - ❌ `distance_x`, `distance_y` — requires knowing enemy location at prediction time
+        - ⚠️ Features directly derived from future or unseen info must be filtered
 
 - [ ] Riot API Data
     - [~] Determine where to get historical match data.
