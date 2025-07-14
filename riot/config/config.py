@@ -24,7 +24,7 @@ MAX_REQUESTS_PER_SECOND = 20
 MAX_REQUESTS_PER_2_MINUTES = 100
 
 # Paths
-DATA_VERSION = "v2"
+DATA_VERSION = "v3"
 BASE_OUTPUT_DIR = os.path.join("database", "riot_data", DATA_VERSION)
 MATCH_DATA_DIR = os.path.join(BASE_OUTPUT_DIR, "match_data")
 SUMMONERS_CSV = os.path.join("database", "riot_data", "found_summoners.csv")

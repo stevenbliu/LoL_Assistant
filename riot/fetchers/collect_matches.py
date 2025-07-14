@@ -8,18 +8,21 @@ from riot.api.api_requests import (
 from riot.processing.extractor import extract_jungler_data
 from riot.api.ratelimit import RiotRateLimiter
 from riot.config.config import MATCH_DATA_DIR, SUMMONERS_CSV, MATCHES_PER_BATCH
+import traceback
 
 limiter = RiotRateLimiter()
 
 
 def safe_request(func, *args, **kwargs):
+    exponential_backoff = 1
     for _ in range(5):
         try:
             limiter.wait()
             return func(*args, **kwargs)
         except Exception as e:
             print(f"Error: {e}. Retrying...")
-            time.sleep(3)
+            time.sleep(3 * exponential_backoff)
+            exponential_backoff *= 2
     raise Exception(f"Failed after retries: {func.__name__}")
 
 
@@ -33,7 +36,7 @@ def collect_data_from_summoners():
     try:
         for idx, row in df[df["processed"] == False].iterrows():
             puuid, sid = row["puuid"], row["leagueId"]
-            print(f"\n➡️ Summoner {sid} ({idx+1}/{len(df)})")
+            print(f"\n➡️ Id: {sid} Summoner({idx+1}/{len(df)})")
 
             os.makedirs(MATCH_DATA_DIR, exist_ok=True)
             processed_files = set(os.listdir(MATCH_DATA_DIR))
@@ -69,6 +72,7 @@ def collect_data_from_summoners():
                         print(f"💾 Saved: {fname}")
                     except Exception as e:
                         print(f"❌ Failed: {e}")
+                        traceback.print_exc()
 
                 if not new_found:
                     break

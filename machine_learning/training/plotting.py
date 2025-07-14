@@ -7,8 +7,14 @@ import numpy as np
 import pandas as pd
 
 
-def plot_predictions(y_test, y_pred, output_path):
-    target_names = y_test.columns.tolist()
+def plot_predictions(y_test, y_pred, output_path, target_names=None):
+    # Accept either DataFrame or np.ndarray
+    if isinstance(y_test, pd.DataFrame):
+        target_names = target_names or y_test.columns.tolist()
+    elif target_names is None:
+        # fallback default names if not provided
+        target_names = [f"target_{i}" for i in range(y_pred.shape[1])]
+
     num_targets = len(target_names)
     num_cols = 2
     num_rows = int(np.ceil(num_targets / num_cols))
@@ -19,11 +25,23 @@ def plot_predictions(y_test, y_pred, output_path):
     print("\n📊 Prediction Metrics:")
 
     for i, name in enumerate(target_names):
-        true_vals = y_test.iloc[:, i]
-        pred_vals = y_pred[:, i]
+        # Extract true and predicted values for plotting
+        if isinstance(y_test, pd.DataFrame):
+            true_vals = y_test.iloc[:, i]
+        else:
+            true_vals = y_test[:, i]
+
+        if isinstance(y_pred, pd.DataFrame):
+            pred_vals = y_pred.iloc[:, i]
+        else:
+            pred_vals = y_pred[:, i]
 
         axes[i].scatter(true_vals, pred_vals, alpha=0.5)
-        axes[i].plot([0, 1], [0, 1], "r--")
+        axes[i].plot(
+            [true_vals.min(), true_vals.max()],
+            [true_vals.min(), true_vals.max()],
+            "r--",
+        )
         axes[i].set_xlabel(f"True {name}")
         axes[i].set_ylabel(f"Predicted {name}")
         axes[i].set_title(f"{name} Prediction vs True")
@@ -40,15 +58,24 @@ def plot_predictions(y_test, y_pred, output_path):
     print(f"Overall R² Score: {r2:.4f}")
 
     for j in range(i + 1, len(axes)):
-        fig.delaxes(axes[j])  # clean up unused axes
+        fig.delaxes(axes[j])  # remove unused subplots
 
     plt.tight_layout()
     fig.savefig(output_path)
     plt.close(fig)
 
 
-def plot_residuals(y_test, y_pred, output_path):
-    residuals = y_test.values - y_pred
+def plot_residuals(y_test, y_pred, output_path, target_names=None):
+    # Accept either DataFrame or np.ndarray
+    if isinstance(y_test, pd.DataFrame):
+        y_test_vals = y_test.values
+        target_names = target_names or y_test.columns.tolist()
+    else:
+        y_test_vals = y_test
+        if target_names is None:
+            target_names = [f"target_{i}" for i in range(y_pred.shape[1])]
+
+    residuals = y_test_vals - y_pred
     fig, ax = plt.subplots(figsize=(10, 6))
     sns.histplot(residuals.flatten(), bins=50, kde=True, ax=ax)
     ax.set_title("Distribution of Residuals (All Outputs Combined)")

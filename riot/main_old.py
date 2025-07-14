@@ -3,14 +3,14 @@ import time
 import pandas as pd
 from datetime import datetime
 
-from RiotAPI import (
+from riot.api.api_requests import (
     get_summoner_data,
     get_ranked_match_ids,
     get_match_info,
     get_match_timeline,
 )
-from starter import extract_jungler_data
-from RiotRateLimiter import RiotRateLimiter
+from riot.parsers import extract_jungler_data
+from riot.api.ratelimit import RiotRateLimiter
 from versioning import save_metadata
 
 # === Configuration ===

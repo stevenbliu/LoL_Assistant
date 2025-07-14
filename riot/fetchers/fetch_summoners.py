@@ -4,7 +4,6 @@ import pandas as pd
 from riot.api.ratelimit import RiotRateLimiter
 import riot.config.config as config  # your config.py with API_KEY, TIERS, DIVISIONS, REGION, etc.
 
-OUTPUT_CSV = config.SUMMONERS_CSV
 API_KEY = config.RIOT_API_KEY
 REGION = config.REGION
 QUEUE_TYPE = config.QUEUE_TYPE
