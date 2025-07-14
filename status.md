@@ -66,6 +66,9 @@
             - Lane states (pushed lanes, roamed lanes)
             - Ally/enemy ward coverage (from vision events or replays)
             - Objective timers (next dragon/baron, tower HP)
+            - Augment with Map Context
+                - Add jungle camp state: which camps are up? (from last clear)
+                - Add objective timers: dragon/baron spawn, tower HP
 
     - [ ] **Removed / Invalid Features**
         - ❌ `distance_x`, `distance_y` — requires knowing enemy location at prediction time

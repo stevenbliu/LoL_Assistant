@@ -260,11 +260,17 @@ def prepare_ml_data(df, selected_features, target_cols, test_size=0.2, random_st
     return X_train_scaled, X_test_scaled, y_train, y_test, scaler
 
 
+TESTING_MODE = False  # Set to True for quick tests with smaller data
+
+
 # ---- MAIN ----
 def main():
     raw_df_path = f"{DATA_DIR}/{VERSION}/all_jungler_data.csv"
     raw_df = pd.read_csv(raw_df_path)
-
+    if (
+        TESTING_MODE
+    ):  # You can set TESTING_MODE = True somewhere in your config or environment
+        raw_df = raw_df.sample(n=1000, random_state=42).reset_index(drop=True)
     # Raw EDA
     eda_raw(raw_df, eda_dir=f"{DATA_DIR}/{VERSION}/eda/raw")
 
@@ -327,17 +333,94 @@ def main():
             ),
         ),
     ]
+    from xgboost import XGBRegressor
+    from sklearn.model_selection import RandomizedSearchCV
+    from lightgbm import LGBMRegressor
 
-    for model_name, model_instance in models:
-        print(f"\n🚀 Training {model_name}...")
+    models_with_params = [
+        # (
+        #     "RandomForest",
+        #     RandomForestRegressor(random_state=42),
+        #     {
+        #         "n_estimators": [100, 200, 300],
+        #         "max_depth": [None, 10, 20],
+        #         "min_samples_split": [2, 5, 10],
+        #     },
+        # ),
+        # (
+        #     "HistGradientBoosting",
+        #     HistGradientBoostingRegressor(random_state=42),
+        #     {
+        #         "max_iter": [100, 200],
+        #         "max_depth": [5, 10],
+        #         "learning_rate": [0.05, 0.1],
+        #     },
+        # ),
+        # (
+        #     "XGBoost",
+        #     XGBRegressor(
+        #         tree_method="hist", objective="reg:squarederror", random_state=42
+        #     ),
+        #     {
+        #         "n_estimators": [50, 100, 200],
+        #         "max_depth": [3, 5, 7],
+        #         "learning_rate": [0.01, 0.1, 0.2],
+        #     },
+        # ),
+        (
+            "LightGBM",
+            LGBMRegressor(random_state=42),
+            {
+                "n_estimators": [50, 100, 200],
+                "num_leaves": [31, 50, 100],
+                "learning_rate": [0.01, 0.1, 0.2],
+                "subsample": [0.7, 1.0],
+            },
+        ),
+    ]
+
+    # for model_name, model_instance in models:
+    #     print(f"\n🚀 Training {model_name}...")
+    #     train_evaluate_model(
+    #         X_train,
+    #         y_train,
+    #         X_test,
+    #         y_test,
+    #         model_instance,
+    #         raw_df_path,
+    #         model_name=model_name,
+    #     )
+
+    for model_name, base_model, param_dist in models_with_params:
+        print(f"\n🎯 Tuning {model_name} with RandomizedSearchCV...")
+
+        # Wrap for multi-output
+        model = MultiOutputRegressor(base_model)
+
+        search = RandomizedSearchCV(
+            estimator=model,
+            param_distributions={f"estimator__{k}": v for k, v in param_dist.items()},
+            n_iter=10,
+            scoring="neg_mean_squared_error",
+            cv=3,
+            n_jobs=-1,
+            verbose=1,
+            random_state=42,
+        )
+
+        search.fit(X_train, y_train)
+        best_model = search.best_estimator_
+
+        print(f"✅ Best params for {model_name}: {search.best_params_}")
+
         train_evaluate_model(
             X_train,
             y_train,
             X_test,
             y_test,
-            model_instance,
+            best_model,
             raw_df_path,
-            model_name=model_name,
+            model_name=f"{model_name}_Tuned",
         )
 
 

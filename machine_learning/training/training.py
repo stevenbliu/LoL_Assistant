@@ -53,7 +53,7 @@ def train_evaluate_model(
         # mlflow.log_input(dataset, context="training")
 
         # Wrap base model if multi-target regression needed
-        if y_train.shape[1] > 1 and not hasattr(base_model, "predict_multioutput"):
+        if y_train.shape[1] > 1 and not isinstance(base_model, MultiOutputRegressor):
             print(
                 f"Wrapping {model_name} with MultiOutputRegressor for multi-target regression.",
                 flush=True,
@@ -70,8 +70,8 @@ def train_evaluate_model(
         for key, value in base_model.get_params().items():
             mlflow.log_param(key, value)
 
-        print("Fitting model...", flush=True)
-        model.fit(X_train, y_train)
+        # print("Fitting model...", flush=True)
+        # model.fit(X_train, y_train)
 
         print("Predicting on test set...", flush=True)
         y_pred = model.predict(X_test)
