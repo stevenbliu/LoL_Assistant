@@ -35,8 +35,8 @@ def collect_data_from_summoners():
 
     try:
         for idx, row in df[df["processed"] == False].iterrows():
-            puuid, sid = row["puuid"], row["leagueId"]
-            print(f"\n➡️ Id: {sid} Summoner({idx+1}/{len(df)})")
+            puuid = row["puuid"]
+            print(f"\n➡️ Id: {puuid} Summoner({idx+1}/{len(df)})")
 
             os.makedirs(MATCH_DATA_DIR, exist_ok=True)
             processed_files = set(os.listdir(MATCH_DATA_DIR))
@@ -80,7 +80,7 @@ def collect_data_from_summoners():
 
             df.at[idx, "processed"] = True
             df.to_csv(SUMMONERS_CSV, index=False)
-            print(f"✅ Marked {sid} as processed.")
+            print(f"✅ Marked {puuid} as processed.")
 
     except KeyboardInterrupt:
         print("\n🛑 Interrupted by user. Saving progress...")

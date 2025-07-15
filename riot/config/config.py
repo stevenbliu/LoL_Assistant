@@ -17,16 +17,23 @@ REGION = "na1"
 QUEUE_TYPE = "RANKED_SOLO_5x5"
 # OUTPUT_CSV = "found_summoners.csv"
 
-TIERS = ["DIAMOND", "PLATINUM"]
+TIERS = [
+    "CHALLENGER",
+    "GRANDMASTER",
+    "MASTER",
+    "DIAMOND",
+]
 DIVISIONS = ["I", "II", "III", "IV"]
 
 MAX_REQUESTS_PER_SECOND = 20
 MAX_REQUESTS_PER_2_MINUTES = 100
 
 # Paths
-DATA_VERSION = "v4"
+DATA_VERSION = "v5"
 BASE_OUTPUT_DIR = os.path.join("database", "riot_data", DATA_VERSION)
 MATCH_DATA_DIR = os.path.join(BASE_OUTPUT_DIR, "match_data")
-SUMMONERS_CSV = os.path.join("database", "riot_data", "found_summoners.csv")
+SUMMONERS_CSV = os.path.join(
+    "database", "riot_data", DATA_VERSION, "found_summoners.csv"
+)
 
 MATCHES_PER_BATCH = 40

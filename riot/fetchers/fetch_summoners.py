@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 from riot.api.ratelimit import RiotRateLimiter
 import riot.config.config as config  # your config.py with API_KEY, TIERS, DIVISIONS, REGION, etc.
+import traceback
 
 API_KEY = config.RIOT_API_KEY
 REGION = config.REGION
@@ -32,6 +33,7 @@ def riot_request(url, params=None):
             print("⏳ Rate limited (429). Waiting 2s...")
             time.sleep(2)
         elif response.ok:
+            print(f"✅ Request successful: {url}")
             return response.json()
         else:
             print(f"❌ Error {response.status_code}: {response.text}")
@@ -40,12 +42,13 @@ def riot_request(url, params=None):
 
 
 def get_players_by_rank(tier, division=None, page=1):
+    params = {"page": page}
+
     if tier in HIGH_TIERS:
         url = f"https://{REGION}.api.riotgames.com/lol/league/v4/{tier.lower()}leagues/by-queue/{QUEUE_TYPE}"
-        return riot_request(url).get("entries", [])
+        return riot_request(url, params)
     else:
         url = f"https://{REGION}.api.riotgames.com/lol/league/v4/entries/{QUEUE_TYPE}/{tier}/{division}"
-        params = {"page": page}
         return riot_request(url, params)
 
 
@@ -61,33 +64,34 @@ def find_good_summoners(min_games=15, min_winrate=0.55):
         for tier in TIERS:
             if tier in HIGH_TIERS:
                 print(f"📦 Searching {tier}...")
-                entries = get_players_by_rank(tier)
+                entries = get_players_by_rank(tier)["entries"]
                 for entry in entries:
                     try:
-                        leagueId = entry["leagueId"]
+                        # leagueId = entry["leagueId"]
                         puuid = entry["puuid"]
                         wins, total = get_winrate(entry)
 
                         if total >= min_games:
                             winrate = wins / total
-                            if winrate >= min_winrate:
-                                print(
-                                    f"✅ leagueId: {leagueId}: W/L: {wins}/{total} WR%: {winrate:.0%}"
-                                )
-                                good_players.append(
-                                    {
-                                        "leagueId": leagueId,
-                                        "puuid": puuid,
-                                        "tier": tier,
-                                        "division": None,
-                                        "winrate": round(winrate, 2),
-                                        "games": total,
-                                    }
-                                )
+                            print(
+                                f"✅ puuId: {puuid}: W/L: {wins}/{total} WR%: {winrate:.0%} {tier}"
+                            )
+                            # if winrate >= min_winrate - 0.05:  # Allow some leeway
+                            good_players.append(
+                                {
+                                    # "leagueId": leagueId,
+                                    "puuid": puuid,
+                                    "tier": tier,
+                                    "division": None,
+                                    "winrate": round(winrate, 2),
+                                    "games": total,
+                                }
+                            )
                     except Exception as e:
                         print(
                             f"❌ Failed for entry {entry.get('leagueId', 'UNKNOWN')}: {e}"
                         )
+                        traceback.print_exc()
                         continue
             else:
                 for division in DIVISIONS:
@@ -104,7 +108,7 @@ def find_good_summoners(min_games=15, min_winrate=0.55):
 
                         for entry in entries:
                             try:
-                                leagueId = entry["leagueId"]
+                                # leagueId = entry["leagueId"]
                                 puuid = entry["puuid"]
                                 wins, total = get_winrate(entry)
 
@@ -112,11 +116,11 @@ def find_good_summoners(min_games=15, min_winrate=0.55):
                                     winrate = wins / total
                                     if winrate >= min_winrate:
                                         print(
-                                            f"✅ leagueId: {leagueId}: W/L: {wins}/{total} WR%: {winrate:.0%}"
+                                            f"✅ puuId: {puuid}: W/L: {wins}/{total} WR%: {winrate:.0%} {tier} {division}"
                                         )
                                         good_players.append(
                                             {
-                                                "leagueId": leagueId,
+                                                # "leagueId": leagueId,
                                                 "puuid": puuid,
                                                 "tier": tier,
                                                 "division": division,
@@ -128,6 +132,7 @@ def find_good_summoners(min_games=15, min_winrate=0.55):
                                 print(
                                     f"❌ Failed for entry {entry.get('leagueId', 'UNKNOWN')}: {e}"
                                 )
+                                traceback.print_exc()
                                 continue
 
                         page += 1

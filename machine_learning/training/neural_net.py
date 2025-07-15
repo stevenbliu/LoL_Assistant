@@ -179,6 +179,7 @@ def train_lstm_model(
                 loss.backward()
                 optimizer.step()
                 total_loss += loss.item()
+
             avg_train_loss = total_loss / len(train_loader)
             train_losses.append(avg_train_loss)
 
@@ -199,16 +200,20 @@ def train_lstm_model(
             mlflow.log_metric("train_loss", avg_train_loss, step=epoch)
             mlflow.log_metric("val_loss", avg_val_loss, step=epoch)
 
-        model.eval()
-        with torch.no_grad():
-            X_test_tensor = torch.tensor(X_test_reshaped).to(device)
-            preds = model(X_test_tensor).cpu().numpy()
-            preds_unscaled = target_scaler.inverse_transform(preds)
-            y_test_unscaled = target_scaler.inverse_transform(y_test_np)
+            model.eval()
+            with torch.no_grad():
+                X_val_tensor = torch.tensor(X_test_reshaped).to(device)
+                preds = model(X_val_tensor).cpu().numpy()
+                preds_unscaled = target_scaler.inverse_transform(preds)
+                y_true_unscaled = target_scaler.inverse_transform(y_test_np)
+                rmse = np.sqrt(np.mean((preds_unscaled - y_true_unscaled) ** 2))
+                print(
+                    f"Epoch {epoch+1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f} | Unscaled RMSE: {rmse:.2f}"
+                )
+                mlflow.log_metric("train_loss", avg_train_loss, step=epoch)
+                mlflow.log_metric("val_loss", avg_val_loss, step=epoch)
 
-            log_metrics_and_plots(
-                y_test_unscaled, preds_unscaled, model_name=model_name
-            )
+        log_metrics_and_plots(y_true_unscaled, preds_unscaled, model_name=model_name)
 
         # log_metrics_and_plots(y_test_np, preds, model_name=model_name)
 

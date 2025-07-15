@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from typing import List, Tuple
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.model_selection import train_test_split
 
 
@@ -82,6 +82,10 @@ def prepare_ml_data_sequences(
     )
     # Drop ID/time cols for input features
     feature_cols = [col for col in feature_cols if col not in id_time_cols]
+    minutes = 5
+    max_timestep = 60 * minutes  # Define the maximum timestep for early-game data
+
+    df = df[df["Timestamp"] <= max_timestep].copy()
 
     X = df[feature_cols]
     y = df[target_cols]
@@ -104,7 +108,7 @@ def prepare_ml_data_sequences(
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
-    target_scaler = StandardScaler()
+    target_scaler = MinMaxScaler()
     y_train_scaled = target_scaler.fit_transform(y_train)
     y_test_scaled = target_scaler.transform(y_test)
 
