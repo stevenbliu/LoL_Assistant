@@ -108,19 +108,64 @@ def plot_feature_importance(model, X_test, y_test, output_path):
         print(f" - {name}: {importance:.5f}")
 
 
-def plot_learning_curve(model, X, y, output_path, scoring="neg_mean_squared_error"):
+from sklearn.model_selection import train_test_split
+
+
+def plot_learning_curve(
+    model,
+    X,
+    y,
+    output_path,
+    scoring="neg_mean_squared_error",
+    size_threshold=10000,
+    fast_max_samples=30000,
+    fast_cv=3,
+    fast_n_points=5,
+    full_cv=5,
+    full_n_points=10,
+    random_state=42,
+):
+    """
+    Automatically chooses fast or full learning curve plotting based on dataset size.
+    """
+
+    if len(X) > size_threshold:
+        print(f"⚡ Using FAST mode (X has {len(X)} rows > {size_threshold})")
+
+        if len(X) > fast_max_samples:
+            print(f"🔹 Sampling down to {fast_max_samples} rows for learning curve.")
+            X_sample, _, y_sample, _ = train_test_split(
+                X, y, train_size=fast_max_samples, random_state=random_state
+            )
+        else:
+            X_sample, y_sample = X, y
+
+        cv = fast_cv
+        n_points = fast_n_points
+
+    else:
+        print(f"🧪 Using FULL mode (X has {len(X)} rows ≤ {size_threshold})")
+        X_sample, y_sample = X, y
+        cv = full_cv
+        n_points = full_n_points
+
+    print(f"📊 Fitting {n_points * cv} models for the learning curve...")
+
     train_sizes, train_scores, val_scores = learning_curve(
         model,
-        X,
-        y,
-        cv=5,
+        X_sample,
+        y_sample,
+        cv=cv,
         scoring=scoring,
-        train_sizes=np.linspace(0.1, 1.0, 10),
+        train_sizes=np.linspace(0.1, 1.0, n_points),
         n_jobs=-1,
     )
+
+    # Calculate errors
     train_errors = -train_scores.mean(axis=1)
     val_errors = -val_scores.mean(axis=1)
 
+    # Plot
     plt.figure(figsize=(8, 6))
     plt.plot(train_sizes, train_errors, label="Training Error")
     plt.plot(train_sizes, val_errors, label="Validation Error")
@@ -132,3 +177,4 @@ def plot_learning_curve(model, X, y, output_path, scoring="neg_mean_squared_erro
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close()
+    print(f"✅ Learning curve saved to: {output_path}")

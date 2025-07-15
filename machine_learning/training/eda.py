@@ -1,6 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
+import mlflow
 
 
 # ---- EDA: RAW DATA ----
@@ -43,7 +44,7 @@ def eda_raw(df, eda_dir):
 # ---- EDA: PROCESSED DATA ----
 def eda_processed(df, eda_dir, log_to_mlflow=False):
     print("\n📊 Processed Data Preview:")
-    print(df.head(10))
+    print(df.head(3))
     print("\n🧾 Summary Statistics:\n", df.describe().T)
 
     os.makedirs(eda_dir, exist_ok=True)

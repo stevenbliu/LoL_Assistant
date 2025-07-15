@@ -6,6 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.multioutput import MultiOutputRegressor
 import os
 from training.config import DATA_DIR, VERSION, USE_MLFLOW
+from lightgbm import LGBMRegressor
 
 
 def visualize_feature_importances(feature_importances, top_n=20):
@@ -37,11 +38,15 @@ def visualize_feature_importances(feature_importances, top_n=20):
 def select_features_multioutput(
     df, target_cols, feature_cols, top_n=20, random_state=42
 ):
+    print("\n🔍 Selecting top features for multi-output regression...", flush=True)
     X = df[feature_cols]
     y = df[target_cols]
 
     # Fit multi-output RandomForestRegressor
-    model = MultiOutputRegressor(RandomForestRegressor(random_state=random_state))
+    # model = MultiOutputRegressor(RandomForestRegressor(random_state=random_state))
+    model = MultiOutputRegressor(
+        LGBMRegressor(random_state=random_state, n_estimators=100)
+    )
     model.fit(X, y)
 
     # Aggregate feature importances across outputs

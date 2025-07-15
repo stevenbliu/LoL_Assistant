@@ -12,6 +12,7 @@ from urllib.parse import urlparse
 import tempfile
 from mlflow.data import from_pandas
 from sklearn.model_selection import RandomizedSearchCV
+from training.logging import log_metrics_and_plots
 
 
 def get_local_path_from_uri(uri):

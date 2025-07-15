@@ -1,4 +1,4 @@
 # ---- Configuration ----
 DATA_DIR = "database/riot_data"
-VERSION = "v3"
+VERSION = "v4"
 USE_MLFLOW = False  # Set True to enable MLflow logging

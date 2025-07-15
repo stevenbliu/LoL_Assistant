@@ -10,6 +10,9 @@ QUEUE_TYPE = config.QUEUE_TYPE
 TIERS = config.TIERS
 DIVISIONS = config.DIVISIONS
 
+# Tiers with no divisions
+HIGH_TIERS = {"MASTER", "GRANDMASTER", "CHALLENGER"}
+
 limiter = RiotRateLimiter(
     per_second=config.MAX_REQUESTS_PER_SECOND,
     per_2min=config.MAX_REQUESTS_PER_2_MINUTES,
@@ -36,10 +39,14 @@ def riot_request(url, params=None):
     return None
 
 
-def get_players_by_rank(tier, division, page=1):
-    url = f"https://{REGION}.api.riotgames.com/lol/league/v4/entries/{QUEUE_TYPE}/{tier}/{division}"
-    params = {"page": page}
-    return riot_request(url, params)
+def get_players_by_rank(tier, division=None, page=1):
+    if tier in HIGH_TIERS:
+        url = f"https://{REGION}.api.riotgames.com/lol/league/v4/{tier.lower()}leagues/by-queue/{QUEUE_TYPE}"
+        return riot_request(url).get("entries", [])
+    else:
+        url = f"https://{REGION}.api.riotgames.com/lol/league/v4/entries/{QUEUE_TYPE}/{tier}/{division}"
+        params = {"page": page}
+        return riot_request(url, params)
 
 
 def get_winrate(entry):
@@ -52,49 +59,78 @@ def find_good_summoners(min_games=15, min_winrate=0.55):
     good_players = []
     try:
         for tier in TIERS:
-            for division in DIVISIONS:
-                print(f"📦 Searching {tier} {division}...")
-                page = 1
+            if tier in HIGH_TIERS:
+                print(f"📦 Searching {tier}...")
+                entries = get_players_by_rank(tier)
+                for entry in entries:
+                    try:
+                        leagueId = entry["leagueId"]
+                        puuid = entry["puuid"]
+                        wins, total = get_winrate(entry)
 
-                while True:
-                    entries = get_players_by_rank(tier, division, page)
-                    if not entries:
+                        if total >= min_games:
+                            winrate = wins / total
+                            if winrate >= min_winrate:
+                                print(
+                                    f"✅ leagueId: {leagueId}: W/L: {wins}/{total} WR%: {winrate:.0%}"
+                                )
+                                good_players.append(
+                                    {
+                                        "leagueId": leagueId,
+                                        "puuid": puuid,
+                                        "tier": tier,
+                                        "division": None,
+                                        "winrate": round(winrate, 2),
+                                        "games": total,
+                                    }
+                                )
+                    except Exception as e:
                         print(
-                            f"No more entries found for {tier} {division} page {page}."
+                            f"❌ Failed for entry {entry.get('leagueId', 'UNKNOWN')}: {e}"
                         )
-                        break
+                        continue
+            else:
+                for division in DIVISIONS:
+                    print(f"📦 Searching {tier} {division}...")
+                    page = 1
 
-                    for entry in entries:
-                        try:
-                            # print(f"Processing SummonerId: {entry}")
-
-                            leagueId = entry["leagueId"]
-                            puuid = entry["puuid"]
-                            wins, total = get_winrate(entry)
-
-                            if total >= min_games:
-                                winrate = wins / total
-                                if winrate >= min_winrate:
-                                    print(
-                                        f"✅ leagueId: {leagueId}: W/L: {wins}/{total} WR%: {winrate:.0%}"
-                                    )
-                                    good_players.append(
-                                        {
-                                            "leagueId": leagueId,
-                                            "puuid": puuid,
-                                            "tier": tier,
-                                            "division": division,
-                                            "winrate": round(winrate, 2),
-                                            "games": total,
-                                        }
-                                    )
-                        except Exception as e:
+                    while True:
+                        entries = get_players_by_rank(tier, division, page)
+                        if not entries:
                             print(
-                                f"❌ Failed for entry {entry.get('leagueId', 'UNKNOWN')}: {e}"
+                                f"No more entries found for {tier} {division} page {page}."
                             )
-                            continue
+                            break
 
-                    page += 1
+                        for entry in entries:
+                            try:
+                                leagueId = entry["leagueId"]
+                                puuid = entry["puuid"]
+                                wins, total = get_winrate(entry)
+
+                                if total >= min_games:
+                                    winrate = wins / total
+                                    if winrate >= min_winrate:
+                                        print(
+                                            f"✅ leagueId: {leagueId}: W/L: {wins}/{total} WR%: {winrate:.0%}"
+                                        )
+                                        good_players.append(
+                                            {
+                                                "leagueId": leagueId,
+                                                "puuid": puuid,
+                                                "tier": tier,
+                                                "division": division,
+                                                "winrate": round(winrate, 2),
+                                                "games": total,
+                                            }
+                                        )
+                            except Exception as e:
+                                print(
+                                    f"❌ Failed for entry {entry.get('leagueId', 'UNKNOWN')}: {e}"
+                                )
+                                continue
+
+                        page += 1
 
     except KeyboardInterrupt:
         print("\n🛑 Interrupted by user. Saving progress...")

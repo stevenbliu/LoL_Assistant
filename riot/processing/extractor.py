@@ -1,139 +1,118 @@
-from riot.api.api_requests import (
-    get_summoner_data,
-    get_ranked_match_ids,
-    get_match_info,
-    get_match_timeline,
-)
-
 import pandas as pd  # Import pandas
+import math
+from collections import defaultdict
+
+
+from collections import defaultdict
+import pandas as pd
 import math
 
 
 def extract_jungler_data(timeline, participants):
     junglers = [p for p in participants if p["individualPosition"].upper() == "JUNGLE"]
-    # Sort by participantId for consistency
     junglers = sorted(junglers, key=lambda p: p["participantId"])
 
-    # Safety: if less than 2 junglers, return empty df or handle accordingly
     if len(junglers) < 2:
-        print("Less than 2 junglers found in match.")
+        print("❌ Less than 2 junglers found.")
         return pd.DataFrame()
 
-    # Take only the first two junglers
     j1, j2 = junglers[:2]
 
-    # Collect timestamps (seconds)
-    timestamps = []
-    for frame in timeline["info"]["frames"]:
-        timestamps.append(frame["timestamp"] // 1000)
-
-    # data = {
-    #     "Timestamp": timestamps,
-    #     # Player 1 data
-    #     "P1_Player": [],
-    #     "P1_Champion": [],
-    #     "P1_MinionsKilled": [],
-    #     "P1_JungleMinionsKilled": [],
-    #     "P1_X": [],
-    #     "P1_Y": [],
-    #     "P1_Team": [],
-    #     "P1_Position": [],
-    #     # Player 2 data
-    #     "P2_Player": [],
-    #     "P2_Champion": [],
-    #     "P2_MinionsKilled": [],
-    #     "P2_JungleMinionsKilled": [],
-    #     "P2_X": [],
-    #     "P2_Y": [],
-    #     "P2_Team": [],
-    #     "P2_Position": [],
-    #     # Interaction features
-    #     "Distance_Between_Junglers": [],
-    # }
-    from collections import defaultdict
-
-    data = defaultdict(list)
-
-    # Extract constant info for each player
-    def get_player_info(j):
-        participantId = str(j["participantId"])
+    def get_player_info(p):
+        pid = str(p["participantId"])
         return {
-            "participantId": participantId,
-            "playerId": j["puuid"],
-            "player_name": j.get("summonerName")
-            or j.get("riotIdGameName")
-            or f"Player{participantId}",
-            "champion": j["championName"],
-            "team": j["teamId"],
-            "position": j["individualPosition"],
+            "participantId": pid,
+            "playerId": p["puuid"],
+            "player_name": p.get("summonerName")
+            or p.get("riotIdGameName")
+            or f"Player{pid}",
+            "champion": p["championName"],
+            "team": p["teamId"],
+            "position": p["individualPosition"],
         }
 
-    p1_player_info = get_player_info(j1)
-    p2_player_info = get_player_info(j2)
+    participant_info = {
+        str(p["participantId"]): get_player_info(p) for p in participants
+    }
+
+    p1_id, p2_id = j1["participantId"], j2["participantId"]
+    data = defaultdict(list)
 
     for frame in timeline["info"]["frames"]:
-        p1_timeline_data = frame["participantFrames"][p1_player_info["participantId"]]
-        p2_timeline_data = frame["participantFrames"][p2_player_info["participantId"]]
+        pf = frame.get("participantFrames", {})
+        timestamp = frame["timestamp"] // 1000
+        data["Timestamp"].append(timestamp)
 
-        # Positions
-        # p1_pos = p1_timeline_data.get("position", {"x": None, "y": None})
-        # p2_pos = p2_timeline_data.get("position", {"x": None, "y": None})
+        for pid_str in participant_info:
+            info = participant_info[pid_str]
+            stats = pf.get(pid_str)  # This may be None
 
-        # Calculate Euclidean distance if positions available - this should be calculated in processing
-        # if (
-        #     p1_pos["x"] is not None
-        #     and p1_pos["y"] is not None
-        #     and p2_pos["x"] is not None
-        #     and p2_pos["y"] is not None
-        # ):
-        #     dist = math.sqrt(
-        #         (p1_pos["x"] - p2_pos["x"]) ** 2 + (p1_pos["y"] - p2_pos["y"]) ** 2
-        #     )
-        # else:
-        #     dist = None
-
-        # Append data
-        players = [
-            ("P1", p1_player_info, p1_timeline_data),
-            ("P2", p2_player_info, p2_timeline_data),
-        ]
-
-        for prefix, info, stats in players:
-            # Player Info
-
-            data[f"{prefix}_Player"].append(info.get("player_name"))
-            data[f"{prefix}_PlayerId"].append(info.get("playerId"))
-            data[f"{prefix}_Participant"].append(info.get("participantId"))
-            data[f"{prefix}_Champion"].append(info.get("champion"))
-            data[f"{prefix}_Team"].append(info.get("team"))
-            data[f"{prefix}_Position"].append(info.get("position"))
-
-            # Game Frame
-            data[f"{prefix}_MinionsKilled"].append(stats.get("minionsKilled", 0))
-            data[f"{prefix}_JungleMinionsKilled"].append(
-                stats.get("jungleMinionsKilled", 0)
+            prefix = (
+                "P1"
+                if pid_str == str(p1_id)
+                else ("P2" if pid_str == str(p2_id) else f"NP{pid_str}")
             )
-            data[f"{prefix}_X"].append(stats.get("position").get("x"))
-            data[f"{prefix}_Y"].append(stats.get("position").get("y"))
-            data[f"{prefix}_currentGold"].append(stats.get("currentGold", 0))
-            data[f"{prefix}_level"].append(stats.get("level", 0))
-            data[f"{prefix}_xp"].append(stats.get("xp", 0))
-            data[f"{prefix}_goldPerSecond"].append(stats.get("goldPerSecond", 0))
 
-            for damageStat in stats.get("damageStats", {}):
-                data[f"{prefix}_{damageStat}"] = stats["damageStats"].get(damageStat, 0)
+            # Always append timestamp for every player
+            data[f"{prefix}_Player"].append(info["player_name"])
+            data[f"{prefix}_PlayerId"].append(info["playerId"])
+            data[f"{prefix}_Participant"].append(info["participantId"])
+            data[f"{prefix}_Champion"].append(info["champion"])
+            data[f"{prefix}_Team"].append(info["team"])
+            data[f"{prefix}_Position"].append(info["position"])
 
-            for championStat in stats.get("championStats", {}):
-                data[f"{prefix}_{championStat}"] = stats["championStats"].get(
-                    championStat, 0
+            if stats:
+                data[f"{prefix}_MinionsKilled"].append(stats.get("minionsKilled", 0))
+                data[f"{prefix}_JungleMinionsKilled"].append(
+                    stats.get("jungleMinionsKilled", 0)
                 )
-        data[f"Timestamp"].append(frame["timestamp"] // 1000)
+                data[f"{prefix}_X"].append(stats.get("position", {}).get("x", math.nan))
+                data[f"{prefix}_Y"].append(stats.get("position", {}).get("y", math.nan))
+                data[f"{prefix}_currentGold"].append(stats.get("currentGold", 0))
+                data[f"{prefix}_level"].append(stats.get("level", 0))
+                data[f"{prefix}_xp"].append(stats.get("xp", 0))
+                data[f"{prefix}_goldPerSecond"].append(stats.get("goldPerSecond", 0))
 
-        # data["Distance_Between_Junglers"].append(dist)
+                for stat_name in stats.get("damageStats", {}):
+                    data[f"{prefix}_{stat_name}"].append(
+                        stats["damageStats"].get(stat_name, 0)
+                    )
 
-    data = dict(data)
-    df = pd.DataFrame(data)
-    return df
+                for stat_name in stats.get("championStats", {}):
+                    data[f"{prefix}_{stat_name}"].append(
+                        stats["championStats"].get(stat_name, 0)
+                    )
+            else:
+                # Fill with None/NaN when stats are missing
+                data[f"{prefix}_MinionsKilled"].append(0)
+                data[f"{prefix}_JungleMinionsKilled"].append(0)
+                data[f"{prefix}_X"].append(math.nan)
+                data[f"{prefix}_Y"].append(math.nan)
+                data[f"{prefix}_currentGold"].append(0)
+                data[f"{prefix}_level"].append(0)
+                data[f"{prefix}_xp"].append(0)
+                data[f"{prefix}_goldPerSecond"].append(0)
+
+                # Fill in known stat keys with zeros or NaN
+                # Optional: define expected stat keys explicitly
+                for stat in [
+                    "physicalVamp",
+                    "power",
+                    "powerMax",
+                    "powerRegen",
+                    "spellVamp",
+                ]:
+                    data[f"{prefix}_{stat}"].append(0)
+
+    # Sanity check
+    lengths = {k: len(v) for k, v in data.items()}
+    if len(set(lengths.values())) != 1:
+        print("❌ Column length mismatch detected:")
+        for k, v in sorted(lengths.items(), key=lambda x: -x[1]):
+            print(f"  {k}: {v}")
+        raise ValueError("All arrays must be of the same length")
+
+    return pd.DataFrame(data)
 
 
 def print_keys(d, prefix=""):

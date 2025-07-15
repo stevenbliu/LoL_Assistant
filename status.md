@@ -31,6 +31,13 @@
     - [x] **📊 Data Expansion**
         - Goal: Use **1000+ ranked jungle matches**
         - Larger dataset expected to improve generalization and pattern capture
+        - Incorporate player-specific features (e.g. win rate, champ mastery) into predictions
+            1. Use a two-stage model:
+                Stage 1: Predict outcome with general match features
+                Stage 2: Recalibrate using player-specific features when available
+            2. Train a unified model that handles missing player data, and substitutes real values once available
+
+            Cache precomputed player embeddings to enable fast feature injection in real-time
     - [ ] **🧠 Feature Set Overview**
         - [x] **Raw Features (from Riot API)**
             - `P1_X`, `P1_Y`, `P2_X`, `P2_Y`: Absolute map positions of both junglers
@@ -69,8 +76,11 @@
             - Augment with Map Context
                 - Add jungle camp state: which camps are up? (from last clear)
                 - Add objective timers: dragon/baron spawn, tower HP
+            - Team Composition
+                - Add laner data, lane status, vision info etc.
 
-    - [ ] **Removed / Invalid Features**
+
+    - [x] **Removed / Invalid Features**
         - ❌ `distance_x`, `distance_y` — requires knowing enemy location at prediction time
         - ⚠️ Features directly derived from future or unseen info must be filtered
 
