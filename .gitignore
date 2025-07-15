@@ -38,3 +38,4 @@ Thumbs.db
 *.json
 *.npy
 *.npz
+*.feather
