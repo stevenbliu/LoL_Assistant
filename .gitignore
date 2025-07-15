@@ -38,4 +38,5 @@ Thumbs.db
 *.json
 *.npy
 *.npz
-*.feather
+# Ignore large feather cache files
+cache/*.feather
