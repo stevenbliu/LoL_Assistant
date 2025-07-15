@@ -104,6 +104,10 @@ def prepare_ml_data_sequences(
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
+    target_scaler = StandardScaler()
+    y_train_scaled = target_scaler.fit_transform(y_train)
+    y_test_scaled = target_scaler.transform(y_test)
+
     total_timesteps = history_steps + 1
     features_per_sample = X_train_scaled.shape[1]
     if features_per_sample % total_timesteps != 0:
@@ -126,4 +130,11 @@ def prepare_ml_data_sequences(
     print(f"X_train_reshaped shape: {X_train_reshaped.shape}")
     print(f"y_train shape: {y_train.shape}")
     print(f"Finished preparing sequences with {total_timesteps} timesteps.", flush=True)
-    return X_train_reshaped, X_test_reshaped, y_train.values, y_test.values, scaler
+    return (
+        X_train_reshaped,
+        X_test_reshaped,
+        y_train_scaled,
+        y_test_scaled,
+        scaler,
+        target_scaler,
+    )

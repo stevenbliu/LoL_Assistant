@@ -5,7 +5,7 @@ import tempfile
 import numpy as np
 import mlflow
 from sklearn.metrics import mean_squared_error, r2_score
-from training.plotting import plot_predictions, plot_residuals
+from training.plotting import plot_predictions, plot_residuals, plot_learning_curve
 import pandas as pd
 
 
@@ -50,5 +50,32 @@ def log_metrics_and_plots(y_test, y_pred, target_names=None, model_name="model")
             y_test, y_pred, output_path=residuals_path, target_names=target_names
         )
 
+        # plot_learning_curve()
+
         mlflow.log_artifact(scatter_path)
         mlflow.log_artifact(residuals_path)
+
+
+def log_training_loss_curve(train_losses, val_losses, model_name):
+    import matplotlib.pyplot as plt
+    import os
+    import tempfile
+    import mlflow
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        loss_fig_path = os.path.join(tmpdir, "loss_curve.png")
+
+        plt.figure(figsize=(8, 5))
+        plt.plot(train_losses, label="Train Loss", marker="o")
+        plt.plot(val_losses, label="Validation Loss", marker="s")
+        plt.title(f"{model_name} Loss Curve")
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss (MSE)")
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(loss_fig_path)
+        plt.close()
+
+        mlflow.log_artifact(loss_fig_path)
+        print("✅ Train + Val loss curve logged.")

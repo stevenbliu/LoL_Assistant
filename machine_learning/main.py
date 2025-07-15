@@ -17,6 +17,7 @@ import os
 from training.neural_net import train_lstm_model
 
 from training.config import DATA_DIR, VERSION, USE_MLFLOW
+import hashlib
 
 # 🔧 Config flags
 USE_RANDOM_SEARCH = False
@@ -26,67 +27,60 @@ USE_NEURAL_NETWORKS = True  # Set to True if you want to use neural networks
 
 
 def create_historical_sequences(
-    df, feature_cols, target_cols, history_steps=3, timestep=60
+    df, feature_cols, target_cols, history_steps=3, timestep=60, cache_dir="cache"
 ):
-    all_rows = []
-    print("\nCreating historical sequences for neural networks...", flush=True)
+    os.makedirs(cache_dir, exist_ok=True)
 
+    # 🔐 Create hash based on selected features and history_steps
+    key_string = ",".join(sorted(feature_cols)) + f"_{history_steps}_{timestep}"
+    cache_key = hashlib.md5(key_string.encode()).hexdigest()
+    cache_path = os.path.join(cache_dir, f"seq_{cache_key}.feather")
+
+    if os.path.exists(cache_path):
+        print(f"📂 Loading cached sequences from: {cache_path}")
+        sequence_df = pd.read_feather(cache_path)
+        return sequence_df
+
+    print("\n🧮 Creating historical sequences from scratch...", flush=True)
+
+    all_rows = []
     group_cols = ["MatchId", "P2_PlayerId"]
     sort_cols = group_cols + ["Timestamp"]
     df = df.sort_values(sort_cols).reset_index(drop=True)
 
-    # These should be included only once for current timestep
     id_time_cols = ["MatchId", "P2_PlayerId", "Timestamp"]
-
-    # Historical features exclude id/time columns
     hist_feature_cols = [col for col in feature_cols if col not in id_time_cols]
-
     grouped = df.groupby(group_cols)
 
     for (match_id, player_id), group in grouped:
-        # print(f"Processing MatchId: {match_id}, PlayerId: {player_id}", flush=True)
         group = group.reset_index(drop=True)
-
         for i in range(history_steps, len(group) - 1):
             input_features = []
-
-            # Historical features at t-steps (exclude id/time columns)
             for h in range(history_steps):
                 row = group.iloc[i - history_steps + h][hist_feature_cols]
                 input_features.extend(row)
-
-            # Current timestep features (exclude id/time columns)
             row_now = group.iloc[i][hist_feature_cols]
             input_features.extend(row_now)
-
-            # Add id/time columns once at current timestep
             id_time_values = group.iloc[i][id_time_cols].tolist()
             input_features.extend(id_time_values)
-
-            # Target: next timestep
             target_row = group.iloc[i + 1][target_cols]
-
             all_rows.append(input_features + target_row.tolist())
-    print(f"Total sequences created: {len(all_rows)}", flush=True)
 
-    # Create column names for historical features (without id/time cols)
     input_feature_names = []
-    for h in range(-history_steps, 0):  # Only historical, no current timestep here
+    for h in range(-history_steps, 0):
         for col in hist_feature_cols:
             input_feature_names.append(f"{col}_t{h * timestep}s")
-
-    # Add current timestep features (no suffix)
     for col in hist_feature_cols:
         input_feature_names.append(f"{col}_t0s")
-
-    # Add id/time columns at current timestep (no suffix)
     input_feature_names.extend(id_time_cols)
-
     col_names = input_feature_names + target_cols
-    sequence_df = pd.DataFrame(all_rows, columns=col_names)
 
-    print(f"Created historical sequences with shape: {sequence_df.shape}")
-    print(f"Head of sequence_df:\n{sequence_df.head(3)}", flush=True)
+    sequence_df = pd.DataFrame(all_rows, columns=col_names)
+    print(f"✅ Created historical sequences with shape: {sequence_df.shape}")
+
+    # 🧊 Cache result
+    sequence_df.to_feather(cache_path)
+    print(f"💾 Cached to: {cache_path}")
 
     return sequence_df
 
@@ -126,11 +120,13 @@ def main():
         id_time_cols = ["MatchId", "P2_PlayerId", "Timestamp"]
 
         # Pass all features including id/time columns (so prepare_ml_data_sequences can drop them internally)
-        X_train, X_test, y_train, y_test, scaler = prepare_ml_data_sequences(
-            processed_df,
-            feature_cols=processed_df.columns.drop(target_cols).tolist(),
-            target_cols=target_cols,
-            id_time_cols=id_time_cols,
+        X_train, X_test, y_train, y_test, scaler, target_scaler = (
+            prepare_ml_data_sequences(
+                processed_df,
+                feature_cols=processed_df.columns.drop(target_cols).tolist(),
+                target_cols=target_cols,
+                id_time_cols=id_time_cols,
+            )
         )
     else:
         X_train, X_test, y_train, y_test, scaler = prepare_ml_data(
@@ -191,7 +187,9 @@ def main():
         print("X_test:", X_test.shape)
         print("y_test:", y_test.shape)
 
-        train_lstm_model(X_train, y_train, X_test, y_test, model_name="LSTM_P2_XY")
+        train_lstm_model(
+            X_train, y_train, X_test, y_test, target_scaler, model_name="LSTM_P2_XY"
+        )
         return  # Skip traditional models
 
     for model_name, base_model, param_dist in models_with_params:

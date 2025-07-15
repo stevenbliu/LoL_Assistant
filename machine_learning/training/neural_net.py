@@ -8,7 +8,7 @@ import pandas as pd
 from typing import Union
 import mlflow
 import mlflow.pytorch
-from training.logging import log_metrics_and_plots
+from training.logging import log_metrics_and_plots, log_training_loss_curve
 
 
 class LSTMPositionPredictor(nn.Module):
@@ -79,6 +79,7 @@ def train_lstm_model(
     y_train,
     X_test,
     y_test,
+    target_scaler,
     model_name="LSTM",
     n_epochs=20,
     batch_size=64,
@@ -164,29 +165,54 @@ def train_lstm_model(
                 "seed": seed,
             }
         )
+        train_losses = []  # NEW: to store per-epoch loss
+        val_losses = []
 
         for epoch in range(n_epochs):
+            # Training phase
             model.train()
             total_loss = 0
-            loop = tqdm(train_loader, desc=f"Epoch {epoch+1}/{n_epochs}")
-            for xb, yb in loop:
+            for xb, yb in train_loader:
                 xb, yb = xb.to(device), yb.to(device)
                 optimizer.zero_grad()
                 loss = loss_fn(model(xb), yb)
                 loss.backward()
                 optimizer.step()
                 total_loss += loss.item()
-                loop.set_postfix(loss=loss.item())
-
             avg_train_loss = total_loss / len(train_loader)
+            train_losses.append(avg_train_loss)
+
+            # Validation phase
+            model.eval()
+            total_val_loss = 0
+            with torch.no_grad():
+                for xb, yb in test_loader:
+                    xb, yb = xb.to(device), yb.to(device)
+                    val_loss = loss_fn(model(xb), yb)
+                    total_val_loss += val_loss.item()
+            avg_val_loss = total_val_loss / len(test_loader)
+            val_losses.append(avg_val_loss)
+
+            print(
+                f"Epoch {epoch+1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}"
+            )
             mlflow.log_metric("train_loss", avg_train_loss, step=epoch)
-            print(f"Epoch {epoch+1} | Train Loss: {avg_train_loss:.4f}")
+            mlflow.log_metric("val_loss", avg_val_loss, step=epoch)
 
         model.eval()
         with torch.no_grad():
             X_test_tensor = torch.tensor(X_test_reshaped).to(device)
             preds = model(X_test_tensor).cpu().numpy()
+            preds_unscaled = target_scaler.inverse_transform(preds)
+            y_test_unscaled = target_scaler.inverse_transform(y_test_np)
 
-        log_metrics_and_plots(y_test_np, preds, model_name=model_name)
+            log_metrics_and_plots(
+                y_test_unscaled, preds_unscaled, model_name=model_name
+            )
+
+        # log_metrics_and_plots(y_test_np, preds, model_name=model_name)
 
         mlflow.pytorch.log_model(model, artifact_path="model")
+
+        # 📉 Plot training loss curve
+        log_training_loss_curve(train_losses, val_losses, model_name)
