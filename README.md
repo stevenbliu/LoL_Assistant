@@ -1,6 +1,27 @@
-# League of Legends Jungler Behavior Prediction
+#League of Legends Jungler Pathing Prediction – ML & Computer Vision Project
+# Stack: Python, Scikit-learn, PyTorch, PyTesseract, PyQT, Riot Games API, Docker, Matplotlib, FAISS
+Developed an ML system to predict enemy jungler pathing in League of Legends using historical match data and real-time visual inputs.
 ## 🧠 Project Summary
 Predict jungler movement on the League of Legends map over time by analyzing match timelines. The goal is to forecast each jungler’s next position coordinates (x_next, y_next) using machine learning.
+
+Computer Vision Overlay: Built a PyQT interface to capture in-game screen regions; used Tesseract-OCR to extract creep score (CS) in real time, enabling data collection from matches and replays.
+
+ML Pipeline: Trained a multi-target regression model to predict enemy jungler X/Y positions from engineered features (delta gold, XP, aggression metrics); incorporated timestamped spatial data and match phase classification.
+
+Data Engineering: Processed 1000+ ranked jungle matches from the Riot API with resumable ETL pipeline; integrated game metadata and time-series position tracking; built automated deduplication and progress tracking tools.
+
+Feature Design: Engineered domain-specific features like jungle aggression, gold efficiency, and temporal bins (early/mid/late); designed a two-stage modeling approach for incorporating player-specific embeddings.
+
+Performance & Evaluation: Visualized prediction accuracy via scatter/residual plots; initial R² ~0.05–0.10 indicated baseline model learning patterns but highlighted need for temporal models (LSTM/Transformer) and larger datasets.
+
+Roadmap (Ongoing):
+
+Reverse-engineering .rofl replay files for finer granularity
+
+Exploring real-time prediction integration via computer vision
+
+Scaling dataset and refining model with sequence-based architectures
+
 
 🏗️ Pipeline Overview
 # 1. Data Collection
